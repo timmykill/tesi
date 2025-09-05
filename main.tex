@@ -751,11 +751,11 @@ defined as the smallest relation following the following schema:
 \end{mathpar}
 
 We can thus now state the \emph{termination insensitive non-interference theorem} as follows:
-\begin{align}
+\begin{align*}
 	&\Delta;\Gamma;\bot \vdash C \Rightarrow
 	\Sigma_1 \equiv^\Gamma_{low} \Sigma_2 \\ \Rightarrow\ &\langle C, \Sigma_1, \mathscr{C}\rangle \Downarrow^{M_1} \Sigma'_1
 	\Rightarrow\ \langle C, \Sigma_2, \mathscr{C}\rangle \Downarrow^{M_2} \Sigma'_2 \\ \Rightarrow\ &\Sigma'_1 \equiv^\Gamma_{low} \Sigma'_2
-\end{align}
+\end{align*}
 
 
 
@@ -875,6 +875,9 @@ We note that $\mathsf{[Chor]}$ differs from $\mathsf{Chor}$ on a few key points:
 	\item \emph{Removal of the runtime term and label selection instructions:} This was not necessary but simplifies the soundness proof. It's justification is that both instructions have no impact on the final computed stores and are needed by choreographies to deal with projection\cite{montesi2023introduction} which goes beyond the scope of this thesis.
 \end{itemize}
 
+\subsection{Lowering and lifting of $\mathsf{[Chor]}$}
+We define an operator $\lfloor \cdot \rfloor$ that \emph{removes} the brackets from a choreography and an operator $\lceil \cdot \rceil$ that turns a \textbf{Chor} into the corresponding \textbf{[Chor]} by copying the same shape.
+
 \subsection{Low equivalence of $\mathsf{[Chor]}$}
 We write \(C_1 \,\approx_{\mathsf{low}}\, C_2\) to denote \emph{low–equivalence} between choreographies.
 Intuitively, \(\approx_{\mathsf{low}}\) compares choreographies structurally, but \emph{forgets the
@@ -928,6 +931,8 @@ $$
 Thus encoding with $\sqsubseteq$ the notion of \emph{observability}: $a \not\sqsubseteq low$ means that $low$ can not \emph{see} the value of $a$
 
 The extension of \emph{well-formedness} to \textbf{[PStore]} is natural.
+
+As we did for choreographies, we define a \emph{lifting} function $\lceil \cdot \rceil$ that maintains the structure of the term while changing it's type. \textbf{TODO: NO, LIFTING PER CSTORE SERVE DARGLI GAMMA PER COSTRUIRE [CSTORE] BEN TIPATO}
 
 \subsection{Correctness of \textbf{[CStore]}}
 We define a function $\lfloor \cdot \rfloor$ polimorfically on \textbf{[Val]}, \textbf{[PStore]} and \textbf{[CStore]}. This function \emph{lowers} the bracketed object to it's reference counterpart.
@@ -1182,12 +1187,33 @@ It is easy to see how the preservation lemma cam be easily carried over to $\cdo
 
 \subsection{Unwinding lemma}
 The unwinding lemma states that the operational semantics preserves low-equal configurations. We formalize this as follows:\\
-Given $C_1, C_2$ in \textbf{[Chor]} s.t. $\Delta, \Gamma, \bot \vdash C_1$ and $\Delta, \Gamma, \bot \vdash C_2$, given $\Sigma_1, \Sigma_2$ s.t. $\Gamma \vdash \Sigma_1 $ and $\Gamma \vdash \Sigma_2$
-
-
-
+Given well-typed $C_1~C_2$ in \textbf{[Chor]}, well-formed $\Sigma_1, \Sigma_2$ is \textbf{[CStore]} then:
+$$
+C_1 \approx_{low} C_2 \land
+\Sigma_1 \approx_{low} \Sigma_2 \land
+\langle C_1, \Sigma_1, \mathscr{C} \rangle \rightarrow
+\langle C_1', \Sigma_1', \mathscr{C} \rangle
+$$
+implies that there exists $C_2'~\Sigma_2'$ s.t.
+$$
+\langle C_2, \Sigma_2, \mathscr{C} \rangle \twoheadrightarrow
+\langle C_2', \Sigma_2', \mathscr{C} \rangle
+\land C_1' \approx_{low} C_2'
+\land \Sigma_1' \approx_{low} \Sigma_2'
+$$
 
 \section{Main proof}
+We remind ourself the main theorem:
+\begin{align*}
+	&\Delta;\Gamma;\bot \vdash C \Rightarrow
+	\Sigma_1 \equiv^\Gamma_{low} \Sigma_2 \\ \Rightarrow\ &\langle C, \Sigma_1, \mathscr{C}\rangle \Downarrow^{M_1} \Sigma'_1
+	\Rightarrow\ \langle C, \Sigma_2, \mathscr{C}\rangle \Downarrow^{M_2} \Sigma'_2 \\ \Rightarrow\ &\Sigma'_1 \equiv^\Gamma_{low} \Sigma'_2
+\end{align*}
+
+\noindent\textbf{Proof:}\\
+We start by \emph{lifting} $C,~\Sigma_1,~\Sigma_2$
+
+
 
 
 
