@@ -878,6 +878,16 @@ We note that $\mathsf{[Chor]}$ differs from $\mathsf{Chor}$ on a few key points:
 \subsection{Lowering and lifting of $\mathsf{[Chor]}$}
 We define an operator $\lfloor \cdot \rfloor$ that \emph{removes} the brackets from a choreography and an operator $\lceil \cdot \rceil$ that turns a \textbf{Chor} into the corresponding \textbf{[Chor]} by copying the same shape.
 
+We note that not every \textbf{Chor} is in the domain of $\lceil \cdot \rceil$.
+As a demonstrating example, let's consider:
+$$
+\lceil p \rightarrow q[L]; \boldsymbol{0} \rceil
+$$
+We would not know how to create an equivalent term in \textbf{[Chor]}
+This problem will be properly addressed in \textbf{TODO: cita capitolo dimostrazione Completezza}. For now we will just define $\lceil \cdot \rceil$ as being \emph{the inverse of lowering}, well defined only for choreographies such that
+$$ c = \lfloor \lceil c \rceil \rfloor $$
+
+
 \subsection{Low equivalence of $\mathsf{[Chor]}$}
 We write \(C_1 \,\approx_{\mathsf{low}}\, C_2\) to denote \emph{low–equivalence} between choreographies.
 Intuitively, \(\approx_{\mathsf{low}}\) compares choreographies structurally, but \emph{forgets the
@@ -932,7 +942,7 @@ Thus encoding with $\sqsubseteq$ the notion of \emph{observability}: $a \not\sqs
 
 The extension of \emph{well-formedness} to \textbf{[PStore]} is natural.
 
-As we did for choreographies, we define a \emph{lifting} function $\lceil \cdot \rceil$ that maintains the structure of the term while changing it's type. \textbf{TODO: NO, LIFTING PER CSTORE SERVE DARGLI GAMMA PER COSTRUIRE [CSTORE] BEN TIPATO}
+As we did for choreographies, we define a \emph{lifting} function $\lceil \cdot \rceil^\Gamma$ for \textbf{CStore}. The main difference is that the lifting function will maintain well-formedness of the created \textbf{[CStore]} with respect to $\Gamma$. That is, it will choose bracketing of values depending on the security label in $\Gamma$ of the associated variables.
 
 \subsection{Correctness of \textbf{[CStore]}}
 We define a function $\lfloor \cdot \rfloor$ polimorfically on \textbf{[Val]}, \textbf{[PStore]} and \textbf{[CStore]}. This function \emph{lowers} the bracketed object to it's reference counterpart.
@@ -952,6 +962,7 @@ $$
 $$
 
 The extension of \emph{correctedness} to \textbf{[PStore]} is natural.
+
 
 \subsection{Low equivalence on \textbf{[CStore]}}
 We define a notion of low-equivalence on \textbf{[Val]}: Given $\upnu_1, \upnu_2$ then
@@ -1166,8 +1177,22 @@ This rule makes sure that the content of $C$ can be typed as high, ensured by th
 The second premise enforces that the label attached to the difference, \(l'\), \emph{dominates} the ambient program counter. In this way all influences of the current control flow, the implicit flows tracked by \(pc\), are subsumed by the bracket’s label \(l'\). \textbf{TODO: questo è word babble, in realtà credo non serva a nulla ma ormai è tardi per cambiarlo}
 
 \section{Auxilliary lemmas}
-To be able to prove the theorem in \textbf{TODO: gestisci le ref a teoremi/assunzioni} we will firstly assume a few auxilliary lemmas, which are proven in appendix \textbf{???}
+To be able to prove the theorem in \textbf{TODO: gestisci le ref a teoremi/assunzioni} we will firstly assume a few auxilliary lemmas, which are proven in appendix \textbf{TODO: ???}
 \subsection{Completeness lemma}
+Completeness is stated as follows:\\
+For each
+$$
+\langle C, \Sigma, ctx \rangle \Downarrow^M \Sigma'
+$$
+There exists $[\Sigma]'$ such that:
+$$
+\langle \lceil \wr C \wr \rceil, \lceil \Sigma \rceil^\Gamma, ctx \rangle \Downarrow [\Sigma]'
+\land \lfloor [\Sigma]' \rfloor = \Sigma'
+$$
+
+The operator $\wr \cdot \wr$ will transform $C$ into the subset of \textbf{Chor} for which
+$\lceil \cdot \rceil$ is well-defined. Part of the completeness proof will be showing that the operator has no influence on the natural semantics.
+
 \subsection{Preservation lemma}
 The preservation lemma (i.e. subject reduction) states that the operational semantics preserves typing, that is \emph{starting from a well typed configuration and executing a step of the semantics gives you a well typed configuration}.
 We are now working only in the instrumented semantics, thus we will omit the redundant brackets when sufficently clear.\\
@@ -1183,7 +1208,7 @@ $$
 \Delta, \Gamma, pc \vdash C' \land \Gamma \vdash \Sigma'
 $$
 
-It is easy to see how the preservation lemma cam be easily carried over to $\cdot \twoheadrightarrow \cdot$.
+It is easy to see how the preservation lemma can be easily carried over to $\cdot \twoheadrightarrow \cdot$.
 
 \subsection{Unwinding lemma}
 The unwinding lemma states that the operational semantics preserves low-equal configurations. We formalize this as follows:\\
@@ -1211,12 +1236,60 @@ We remind ourself the main theorem:
 \end{align*}
 
 \noindent\textbf{Proof:}\\
-We start by \emph{lifting} $C,~\Sigma_1,~\Sigma_2$
+By completeness we find:
+$$
+	\langle \lceil \wr C \wr \rceil, \lceil \Sigma_1 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_1 \quad \text{and} \quad
+	\langle \lceil \wr C \wr \rceil, \lceil \Sigma_2 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_2
+$$
+such that
+\begin{equation}\label{main:low_eq_cs}
+\lfloor [\Sigma]'_1 \rfloor = \Sigma'_1 \quad \text{and} \quad
+\lfloor [\Sigma]'_2 \rfloor = \Sigma'_2
+\end{equation}
+By property \textbf{TODO: definiscila e citala} of the instrumented type system we find:
+$$\Delta;\Gamma;\bot \vdash C \Rightarrow
+\Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil$$
+By definition of $\lceil \cdot \rceil^\Gamma$ we have
+$$
+i \in {1,2} \quad \lceil \Sigma_i \rceil^\Gamma \Rightarrow
+\Gamma \vdash \lceil \Sigma_i \rceil^\Gamma
+$$
+We can thus use preservation to find
+$$
+\Gamma \vdash [\Sigma]_1' \quad \text{and} \quad \Gamma \vdash [\Sigma]_2'
+$$
+That, with \ref{main:low_eq_cs} let's us reduce the proof of $
+\Sigma_1' \equiv_{low}^\Gamma \Sigma_2'$ to the proof of
+$ [\Sigma]_1' \approx_{low} [\Sigma]_2' $
 
-
-
-
-
+\medskip
+\noindent We are now reduced the proof to the following:
+\begin{align*}
+	&\Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil \\
+	\Rightarrow\ &\langle \lceil \wr C \wr \rceil, \lceil \Sigma_1 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_1 \\
+	\Rightarrow\ &\langle \lceil \wr C \wr \rceil, \lceil \Sigma_2 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_2 \\
+	\Rightarrow\ &[\Sigma]'_1 \approx_{low} [\Sigma]'_2
+\end{align*}
+By $\Sigma_1 \equiv^\Gamma_{low} \Sigma_2$ and well-formedness of the contexts we have
+$$
+\lceil \Sigma_1 \rceil^\Gamma \approx_{low} \lceil \Sigma_2 \rceil^\Gamma
+$$
+By reflexivity of $\approx_{low}$ we have
+$$
+\lceil \wr C \wr \rceil \approx_{low} \lceil \wr C \wr \rceil
+$$
+We generalize over the specific construction of
+$ \lceil \Sigma_1 \rceil^\Gamma,~\lceil \Sigma_2 \rceil^\Gamma,~\lceil \wr C \wr \rceil $ and just keep the previously stated low-equivalences between them.
+At this point the proof follows by induction on the size of the first transitions:
+\begin{itemize}
+	\item \emph{size 0}: Transition of size zero means that the first choreography is $\boldsymbol{0}$. By definition of $\cdot \approx_{low} \cdot$ the second is $\boldsymbol{0}$ as-well. By hypothesis the two $\Sigma$ are equivalent, thus the conclusion follows
+	\item \emph{size n+1}: This means that the first transition is composed by at least one step of the operational semantics.
+$$
+		\langle [C]_1, [\Sigma]_1, \mathscr{C}\rangle \rightarrow
+		\langle [C]_1^*, [\Sigma]_1^*, \mathscr{C}\rangle
+$$
+		By the unwinding lemma we find $[C_2]^*,~[\Sigma]_2^*$ s.t. the low-equivalence is respected. By the preservation lemma we find the hypothesis of well-typedness and well-formedness needed to use the induction hypothesis, with which we prove the conclusion.
+\end{itemize}
 
 
 \bibliographystyle{plain}
