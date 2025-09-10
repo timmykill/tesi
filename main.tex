@@ -1,9 +1,11 @@
 \documentclass[12pt,a4paper,twoside]{book}
 \usepackage[english]{babel}
 \usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.markings,shapes.misc}
 \usepackage[utf8]{inputenc}
 \usepackage[a4paper,inner=3.5cm,outer=2.5cm]{geometry}
 \usepackage[titletoc,title,toc,page]{appendix}
+\usepackage{wrapfig}
 \usepackage{cite}
 \usepackage{url}
 \usepackage{hyphenat}
@@ -23,6 +25,18 @@
   breaklines=true,
   captionpos=b
 }
+
+\tikzset{
+  >=Stealth,
+  lab/.style={midway,fill=white,inner sep=2pt},
+  markarrows/.style={
+    postaction={decorate},
+    decoration={markings,
+      mark=at position .85 with {\arrow{Stealth}},
+      mark=at position 1 with {\arrow{Stealth}}}
+  }
+}
+
 
 \newcommand{\rom}[1]{\uppercase\expandafter{\romannumeral #1\relax}}
 \newcommand{\metaDeff}{\mathrel{\mathop{::}}=}
@@ -114,7 +128,7 @@ Abstract qui (ti consiglio di farlo alla fine)
 \chapter{Introduction} \label{chap:intro}
 \pagestyle{plain}
 \setcounter{page}{1}
-%% TODO: riguarda alla fine
+\textbf{TODO: riguarda alla fine}
 In this thesis we study how to enforce \emph{non‑interference} for choreographic programs using a \emph{type‑based} approach that we mechanize in a proof assistant.
 The central idea is to track how information may flow—both explicitly, through assignments and communications, and implicitly, through control flow—and to rule out programs whose low‑observable behaviour can be influenced by high‑confidential data.
 To this end, we design a compositional type-system indexed by a program‑counter label and by an environment of security labels for variables at each process.
@@ -388,17 +402,11 @@ the operational semantics\cite{sabelfeld2003language}.
 \emph{Side channels} (e.g.\ timing, termination,
 resource usage, cache effects, message sizes, or scheduler-dependent behavior)
 fall outside this view unless the semantics and the attacker observation model
-explicitly make them observable .
+explicitly make them observable.
 Any security guarantee should therefore be read
-\emph{relative to the chosen observation model}. When side channels matter, they
-can be brought into scope by (i) enriching the semantics with cost or timing
-observables and adopting timing-/step-sensitive definitions; (ii) enforcing
-constant-time or constant-resource typing disciplines; (iii) using quantitative
-information-flow notions to bound leakage; or (iv) constraining concurrency and
-communication patterns (e.g.\ scheduler assumptions, padding to equalize message
-sizes). Which approach is appropriate depends on the system being modeled.
-\textbf{TODO: aggiungi citazioni here}
-
+\emph{relative to the chosen observation model}.
+When side channels matter, they can be brought into scope by enriching the semantics with cost or timing
+observables and adopting timing-/step-sensitive definitions\cite{197207}.
 
 \section{Non-Interference}
 Denning's work\cite{denning1976lattice} is primarily concerned with the design and specification of information flow policies rather than their enforcement in concrete programming languages. Notably, the lattice model does not define how to formally relate a program's execution semantics to the flow policy. While the model is sound as a representation of policy, it operates at an abstract level, and leaves open the question of how to \textit{rigorously} ensure that actual programs respect the intended information flow restrictions.\footnote{In the concluding section of her paper, Denning briefly surveys various enforcement mechanisms, including compiler-based techniques and hardware support. However, this survey is based on intuitive arguments rather than being a formal account.}
@@ -751,14 +759,13 @@ defined as the smallest relation following the following schema:
 \end{mathpar}
 
 We can thus now state the \emph{termination insensitive non-interference theorem} as follows:
-\begin{align*}
+\begin{align} \label{main:def}
+\begin{split}
 	&\Delta;\Gamma;\bot \vdash C \Rightarrow
 	\Sigma_1 \equiv^\Gamma_{low} \Sigma_2 \\ \Rightarrow\ &\langle C, \Sigma_1, \mathscr{C}\rangle \Downarrow^{M_1} \Sigma'_1
 	\Rightarrow\ \langle C, \Sigma_2, \mathscr{C}\rangle \Downarrow^{M_2} \Sigma'_2 \\ \Rightarrow\ &\Sigma'_1 \equiv^\Gamma_{low} \Sigma'_2
-\end{align*}
-
-
-
+\end{split}
+\end{align}
 
 \medskip
 
@@ -876,17 +883,29 @@ We note that $\mathsf{[Chor]}$ differs from $\mathsf{Chor}$ on a few key points:
 \end{itemize}
 
 \subsection{Lowering and lifting of $\mathsf{[Chor]}$}
-We define an operator $\lfloor \cdot \rfloor$ that \emph{removes} the brackets from a choreography and an operator $\lceil \cdot \rceil$ that turns a \textbf{Chor} into the corresponding \textbf{[Chor]} by copying the same shape.
+We introduce an operator $\lfloor \cdot \rfloor: \textbf{[Chor]} \rightarrow \textbf{Chor}$ that \emph{removes} the instrumentation from a choreography. The operator is defined by structural recursion on the structure of $C$:
+\begin{align*}
+\lfloor \boldsymbol{0}\rfloor & \triangleq \boldsymbol{0} \\
+\lfloor C_1 \mathbin{;} C_2\rfloor & \triangleq \lfloor C_1 \rfloor \fatsemi \lfloor C_2 \rfloor\\
+\lfloor [C] \rfloor & \triangleq \lfloor C \rfloor\\
+	\lfloor p.x \mathrel{:=} e \rfloor & \triangleq p.x \mathrel{:=} e; \boldsymbol{0}\\
+	\lfloor p.e \;\rightarrow\; q.x \rfloor & \triangleq p.e \;\rightarrow\; q.x; \boldsymbol{0}\\
+\lfloor \mathbf{if}\; p.e\; \mathbf{then}\; C_1\; \mathbf{else}\; C_2 \rfloor
+	& \triangleq \mathbf{if}\; p.e\; \mathbf{then}\; \lfloor C_1\rfloor\; \mathbf{else}\; \lfloor C_2 \rfloor; \boldsymbol{0}\\
+	\lfloor X(\vec{p})\rfloor & \triangleq X(\vec{p}); \boldsymbol{0}
+\end{align*}
+We also define an operator $\lceil \cdot \rceil$ that turns a \textbf{Chor} into the corresponding \textbf{[Chor]} by copying it's shape.
 
 We note that not every \textbf{Chor} is in the domain of $\lceil \cdot \rceil$.
 As a demonstrating example, let's consider:
 $$
 \lceil p \rightarrow q[L]; \boldsymbol{0} \rceil
 $$
-We would not know how to create an equivalent term in \textbf{[Chor]}
-This problem will be properly addressed in \textbf{TODO: cita capitolo dimostrazione Completezza}. For now we will just define $\lceil \cdot \rceil$ as being \emph{the inverse of lowering}, well defined only for choreographies such that
-$$ c = \lfloor \lceil c \rceil \rfloor $$
-
+We would not know how to create an equivalent term in \textbf{[Chor]}.
+This problem will be properly addressed in \ref{chap:compl}. For now we will just define $\lceil \cdot \rceil$ as being \emph{the inverse of lowering}, well defined only for choreographies such that
+\begin{equation}\label{defs:lift_chor}
+C = \lfloor \lceil C \rceil \rfloor
+\end{equation}
 
 \subsection{Low equivalence of $\mathsf{[Chor]}$}
 We write \(C_1 \,\approx_{\mathsf{low}}\, C_2\) to denote \emph{low–equivalence} between choreographies.
@@ -1153,45 +1172,147 @@ $$
 It is to be noted that this property, combined with assuming the reference evaluation as deterministic, makes local expression evaluation for the instrumented semantics deterministic as-well.
 
 \subsection{Extension of the type system}
-Most of the type system for \textbf{[Chor]} carries over from the one for \textbf{Chor}, with a few exceptions:
-
-\subsubsection{Expressions}
-\textbf{TODO: questa va nella dimostrazione ora}
-We circumvent this by assuming there exists a sound typing relation $ \gamma,~pc \vdash e: \ell $.
-In this context, \emph{soundness} means that every time the typing judgment types an expression as $\ell \sqsubseteq low$, then the expression returns a non-bracketed value.
-
-Formally, we express this by saying that for every $\gamma$ in \textbf{SecPLab} well-formed with respect to $\sigma$ in \textbf{PStore}, $e$ in \textbf{Expr}, $\ell \in \MCL$ s.t. $\ell \sqsubseteq low$, $v$ in \textbf{[Val]} s.t. $\nexists~v',~v = [v]$ then:
+Most of the type system for \textbf{[Chor]} carries over from the one for \textbf{Chor}, with a new rule to type \emph{bracketed choreographies}:
 $$
-\gamma,~pc \vdash e: \ell \Rightarrow \sigma \vdash e \downarrow v
-$$
-
-In is to be noted that we do not require this typing judgment to be both \emph{sound and complete}, as we are not restrict in any way the expressiveness of expression evaluation and we do not want to incur in termination issues with the type-checking procedure.
-
-\subsubsection{Bracketed Choreographies}
-\[
   \inferrule
   {\Delta;\Gamma;\ell' \vdash \; C  \quad pc \sqsubseteq \ell' \quad \ell' \not\sqsubseteq low}
   {\Delta;\Gamma;pc \vdash \; [C]}
-\]
+$$
 This rule makes sure that the content of $C$ can be typed as high, ensured by the first and last premise.\\
 The second premise enforces that the label attached to the difference, \(l'\), \emph{dominates} the ambient program counter. In this way all influences of the current control flow, the implicit flows tracked by \(pc\), are subsumed by the bracket’s label \(l'\). \textbf{TODO: questo è word babble, in realtà credo non serva a nulla ma ormai è tardi per cambiarlo}
 
 \section{Auxilliary lemmas}
-To be able to prove the theorem in \textbf{TODO: gestisci le ref a teoremi/assunzioni} we will firstly assume a few auxilliary lemmas, which are proven in appendix \textbf{TODO: ???}
-\subsection{Completeness lemma}
+To be able to prove the main non-interference theorem as defined in \ref{main:def} we will firstly assume a few auxilliary lemmas. Since The majority of the proof approach is taken directly from \cite{myers2011proving}, we will abstain from reproducing them in this work.
+
+\subsection{Completeness lemma}\label{chap:compl}
 Completeness is stated as follows:\\
 For each
 $$
-\langle C, \Sigma, ctx \rangle \Downarrow^M \Sigma'
+\langle C, \Sigma, \mathscr{C} \rangle \Downarrow^M \Sigma'
 $$
 There exists $[\Sigma]'$ such that:
-$$
-\langle \lceil \wr C \wr \rceil, \lceil \Sigma \rceil^\Gamma, ctx \rangle \Downarrow [\Sigma]'
+\begin{equation}
+\label{aux:compl}
+	\langle \lceil \wr C \wr \rceil, \lceil \Sigma \rceil^\Gamma, \mathscr{C} \rangle \Downarrow [\Sigma]'
 \land \lfloor [\Sigma]' \rfloor = \Sigma'
-$$
+\end{equation}
 
 The operator $\wr \cdot \wr$ will transform $C$ into the subset of \textbf{Chor} for which
 $\lceil \cdot \rceil$ is well-defined. Part of the completeness proof will be showing that the operator has no influence on the natural semantics.
+
+Since \textbf{Chor} and \textbf{[Chor]} have multiple small but significant differences, we proceed the completeness proof by composing consecutive steps:
+
+\subsubsection{Removal of non-determinism in the semantics}
+We can easily verify how the semantics given in \ref{background:choreographies} is non-deterministic meaning that given the same configuration it admits multiple, different, execution steps. It is also to be noted that the instrumented semantics is defined as fully deterministic: any configuration that admits an execution step admits just one.
+%Confluence means that is proving that all maximal executions from the same state yield the same observable result.
+
+The first step to reach completeness is to prove that this non-determinism can be discarded.
+This goal is achieved by considering a semantics for choreography where the rules DELAY, DELAY-COND are omitted and where the rule CALL-FIRST has the following form:
+\bigskip
+
+\noindent\makebox[\textwidth][c]{\resizebox{1.0 \textwidth}{!}{$
+    \inferrule*[right=call-first] { X(\vec{q}~) = C \in \mathscr{C} \\ \vec{p} = p_1, \ldots, p_n }
+	{\langle X(\vec{p}~);C', \Sigma, \mathscr{C} \rangle \xrightarrow{\tlint{p_1}} \langle p_2 : X(\vec{p}~).C'; \ldots; p_n : X(\vec{p}~).C'; C[\vec{q}/\vec{p}~] \fatsemi C', \Sigma, \mathscr{C} \rangle}
+$}}
+\smallskip
+
+\begin{wrapfigure}{r}{0.35\textwidth}
+  \centering
+\begin{tikzpicture}[x=1cm,y=1cm, every node/.style={font=\small}]
+  %--- Nodes placed to mimic the photo ----------------------------------------
+  \node (C)   at (0,0) {$C$};
+  \node (C2)  at (1,-1) {$C_2$};
+  \node (C2p) at (3,-3) {$C_2'$};
+  \node (C1)  at (-1, -1) {$C_1$};
+  \node (C1p) at (0,-2) {$C_1'$};
+  \node (Cp)  at (2,-4) {$C'$};
+
+  %--- Top/right branch --------------------------------------------------------
+  \draw[->] (C) -- node[right=4pt] {$\mu_2$} (C2);
+  \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
+       at ($(C)!0.45!(C2)$) {};
+
+  \draw[->] (C) -- node[left=4pt] {$\mu_1$} (C1);
+
+  \draw[->] (C1) -- node[left=4pt] {$\mu_2$} (C1p);
+  \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
+       at ($(C1)!0.35!(C1p)$) {};
+
+  \draw[markarrows] (C2) -- node[right=4pt] {$M$} (C2p);
+  \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
+       at ($(C2)!0.25!(C2p)$) {};
+
+  \draw[markarrows] (C1p) -- node[left=4pt] {$M$} (Cp);
+  \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
+       at ($(C1p)!0.25!(Cp)$) {};
+
+  \draw[->] (C2p) -- node[right=4pt] {$\mu_1$} (Cp);
+  \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
+       at ($(C2p)!0.45!(Cp)$) {};
+
+\end{tikzpicture}
+\end{wrapfigure}
+
+While a full proof of completeness of the deterministic semantics is not given, the following diagram gives the intuition: $C$ is able to do a step in the reference semantics and reach a $C_1$ configuration, while in the deterministic semantics (denoted with the crossed arrow) $C$ reaches a \emph{different} $C_2$.
+Assuming the computation from $C$ as terminating in the reference semantics, it is always reachable a common configuration $C'$ from both $C_1$ and $C_2$ using the deterministic semantics.
+
+The new semantics is deterministic as defined above: any configuration that admits an execution step admits just one, completely specified by the first instruction of the choreography. From now the deterministic semantics will be the semantics considered for \textbf{Chor}.
+
+\subsubsection{Removal of irrelevant terms}
+We want to prove that terms not present in the image of $\lfloor \cdot \rfloor$ are not relevant to natural semantics to be able to use freely the $\lceil \cdot \rceil$ operator. We introduce the operator $\wr C \wr$ defined by structural recursion on $C$ as follows:
+\begin{align*}
+	\wr~\boldsymbol{0}~\wr &\triangleq \boldsymbol{0} \\
+	\wr~p.e \rightarrow q.x;~ C'~\wr &\triangleq p.e \rightarrow q.x;~ \wr C' \wr \\
+	\wr~p \rightarrow q[L];~ C'~\wr &\triangleq \wr C' \wr \\
+	\wr~p.x := e;~ C'~\wr &\triangleq p.x := e;~ \wr C' \wr \\
+	\wr~\text{if } p.e \text{ then } C_1 \text{ else } C_2;~ C'~\wr &\triangleq \text{if } p.e \text{ then } \wr C_1\wr \text{ else } \wr C_2\wr ;~ \wr C'\wr \\
+	\wr~X(\vec{p}~);~ C'~\wr &\triangleq X(\vec{p}~);~ \wr C' \wr \\
+	\wr~q : X(\vec{p}~).C;~ C'~\wr &\triangleq \wr C' \wr \\
+\end{align*}
+It is easy to verify how, for any $C$, $\lceil \wr C \wr \rceil$ is well-defined as by definition \ref{defs:lift_chor}.
+
+We now prove that this operator is complete with respect to the semantics: for each $C$ such that
+$$
+\langle C, \Sigma, \mathscr{C} \rangle \Downarrow^M \Sigma'
+$$
+
+There exists $M^*$ such that:
+\begin{equation}
+\label{aux:compl_wr}
+	\langle \wr C \wr, \Sigma, \mathscr{C} \rangle \Downarrow^{M^*} \Sigma'
+\end{equation}
+
+\noindent \textbf{Proof:}\\
+We proceed by induction on the size of $M$
+\begin{itemize}
+	\item \emph{size: 0} In this case the $C = \boldsymbol{0}$, by definition
+		$\wr C \wr = \boldsymbol{0}$, thus by definition of $\cdot \Downarrow^\cdot \cdot$ the conclusion holds.
+	\item \emph{size: n+1} In this case we have two hypothesis:
+		\begin{align}
+			\langle C, \Sigma, \mathscr{C} \rangle& \xrightarrow{\mu}
+			\langle C', \Sigma', \mathscr{C} \rangle& \tag{H1} \label{aux:compl_wr_h1}\\
+			\exists M',~\langle \wr C'\wr, \Sigma', \mathscr{C} \rangle& \Downarrow^{M'} \Sigma'' \tag{IH} \label{aux:compl_wr_ih}
+		\end{align}
+		By inversion of (\ref{aux:compl_wr_h1}) we find that $C = I; C^\bigstar$, we proceed by cases on the structure of $I$:
+		\begin{itemize}
+			\item \emph{assign, communication}: By further inversion of (\ref{aux:compl_wr_h1}) we find $C^\bigstar = C'$.\\
+			By definition of $\wr \cdot \wr$ we have: $\wr I; C' \wr = I;~\wr C' \wr$, thus using (\ref{aux:compl_wr_ih}) exists $M^* = \mu :: M'$
+			\item \emph{selection, runtime term}:
+				By further inversion of (\ref{aux:compl_wr_h1}) we find $C^\bigstar = C'$.\\
+				By definition of $\wr \cdot \wr$ we have: $\wr I; C' \wr = \wr C'\wr$, thus using (\ref{aux:compl_wr_ih}) exists $M^* = M'$
+			\item \emph{function call}: By further inversion of (\ref{aux:compl_wr_h1}) we find \textbf{TODO: TROVIAMO CHE SEI STUPIDO}
+		\end{itemize}
+	
+\end{itemize}
+
+
+\subsection{Extension of typing}\label{aux:ext_tj}
+This lemma creates tells us \emph{lifting} a choreography maintains typing.\\
+Formally:
+$$
+\Delta;\Gamma;\bot \vdash C \Rightarrow
+\Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil
+$$
 
 \subsection{Preservation lemma}
 The preservation lemma (i.e. subject reduction) states that the operational semantics preserves typing, that is \emph{starting from a well typed configuration and executing a step of the semantics gives you a well typed configuration}.
@@ -1201,12 +1322,12 @@ $\langle C, \Sigma, \mathscr{C}\rangle$ is well-typed for a $pc \in \MCL$ when
 $\Delta, \Gamma, pc \vdash C$ and $\Gamma \vdash \Sigma$
 
 Thus the preservation lemma is stated as follows:
-$$
+\begin{equation}\label{aux:pres}
 \Delta, \Gamma, pc \vdash C \land \Gamma \vdash \Sigma \land 
 \langle C, \Sigma, \mathscr{C}\rangle \rightarrow
 \langle C', \Sigma', \mathscr{C}\rangle \Rightarrow 
 \Delta, \Gamma, pc \vdash C' \land \Gamma \vdash \Sigma'
-$$
+\end{equation}
 
 It is easy to see how the preservation lemma can be easily carried over to $\cdot \twoheadrightarrow \cdot$.
 
@@ -1220,15 +1341,16 @@ C_1 \approx_{low} C_2 \land
 \langle C_1', \Sigma_1', \mathscr{C} \rangle
 $$
 implies that there exists $C_2'~\Sigma_2'$ s.t.
-$$
+\begin{equation}\label{aux:unw}
 \langle C_2, \Sigma_2, \mathscr{C} \rangle \twoheadrightarrow
 \langle C_2', \Sigma_2', \mathscr{C} \rangle
 \land C_1' \approx_{low} C_2'
 \land \Sigma_1' \approx_{low} \Sigma_2'
-$$
+\end{equation}
+
 
 \section{Main proof}
-We remind ourself the main theorem:
+We remind ourself the main theorem as defined in (\ref{main:def}):
 \begin{align*}
 	&\Delta;\Gamma;\bot \vdash C \Rightarrow
 	\Sigma_1 \equiv^\Gamma_{low} \Sigma_2 \\ \Rightarrow\ &\langle C, \Sigma_1, \mathscr{C}\rangle \Downarrow^{M_1} \Sigma'_1
@@ -1236,7 +1358,7 @@ We remind ourself the main theorem:
 \end{align*}
 
 \noindent\textbf{Proof:}\\
-By completeness we find:
+By completeness (\ref{aux:compl}) we find:
 $$
 	\langle \lceil \wr C \wr \rceil, \lceil \Sigma_1 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_1 \quad \text{and} \quad
 	\langle \lceil \wr C \wr \rceil, \lceil \Sigma_2 \rceil^\Gamma, \mathscr{C}\rangle \Downarrow [\Sigma]'_2
@@ -1246,15 +1368,14 @@ such that
 \lfloor [\Sigma]'_1 \rfloor = \Sigma'_1 \quad \text{and} \quad
 \lfloor [\Sigma]'_2 \rfloor = \Sigma'_2
 \end{equation}
-By property \textbf{TODO: definiscila e citala} of the instrumented type system we find:
-$$\Delta;\Gamma;\bot \vdash C \Rightarrow
-\Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil$$
+By extension of typing \ref{aux:ext_tj} we have:
+$$\Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil$$
 By definition of $\lceil \cdot \rceil^\Gamma$ we have
 $$
 i \in {1,2} \quad \lceil \Sigma_i \rceil^\Gamma \Rightarrow
 \Gamma \vdash \lceil \Sigma_i \rceil^\Gamma
 $$
-We can thus use preservation to find
+We can thus use preservation (\ref{aux:pres}) to find
 $$
 \Gamma \vdash [\Sigma]_1' \quad \text{and} \quad \Gamma \vdash [\Sigma]_2'
 $$
@@ -1288,7 +1409,8 @@ $$
 		\langle [C]_1, [\Sigma]_1, \mathscr{C}\rangle \rightarrow
 		\langle [C]_1^*, [\Sigma]_1^*, \mathscr{C}\rangle
 $$
-		By the unwinding lemma we find $[C_2]^*,~[\Sigma]_2^*$ s.t. the low-equivalence is respected. By the preservation lemma we find the hypothesis of well-typedness and well-formedness needed to use the induction hypothesis, with which we prove the conclusion.
+		By unwinding (\ref{aux:unw}) we find $[C_2]^*,~[\Sigma]_2^*$ s.t. the low-equivalence is respected.
+		By preservation (\ref{aux:pres}) we find the hypothesis of well-typedness and well-formedness needed to use the induction hypothesis, with which we prove the conclusion.
 \end{itemize}
 
 
