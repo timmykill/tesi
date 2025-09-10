@@ -1271,6 +1271,12 @@ We want to prove that terms not present in the image of $\lfloor \cdot \rfloor$ 
 \end{align*}
 It is easy to verify how, for any $C$, $\lceil \wr C \wr \rceil$ is well-defined as by definition \ref{defs:lift_chor}.
 
+We extend the operator $\wr \cdot \wr$ on \emph{procedure context}, as follows:
+$$
+\wr\mathscr{C}\wr \triangleq
+\{X(\vec{p}) = \wr C \wr \mid X(\vec{p}) = C \in \mathscr{C}\}
+$$
+
 We now prove that this operator is complete with respect to the semantics: for each $C$ such that
 $$
 \langle C, \Sigma, \mathscr{C} \rangle \Downarrow^M \Sigma'
@@ -1279,7 +1285,7 @@ $$
 There exists $M^*$ such that:
 \begin{equation}
 \label{aux:compl_wr}
-	\langle \wr C \wr, \Sigma, \mathscr{C} \rangle \Downarrow^{M^*} \Sigma'
+	\langle \wr C \wr, \Sigma, \wr\mathscr{C}\wr \rangle \Downarrow^{M^*} \Sigma'
 \end{equation}
 
 \noindent \textbf{Proof:}\\
@@ -1291,20 +1297,44 @@ We proceed by induction on the size of $M$
 		\begin{align}
 			\langle C, \Sigma, \mathscr{C} \rangle& \xrightarrow{\mu}
 			\langle C', \Sigma', \mathscr{C} \rangle& \tag{H1} \label{aux:compl_wr_h1}\\
-			\exists M',~\langle \wr C'\wr, \Sigma', \mathscr{C} \rangle& \Downarrow^{M'} \Sigma'' \tag{IH} \label{aux:compl_wr_ih}
+			\exists M',~\langle \wr C'\wr, \Sigma', \wr \mathscr{C} \wr \rangle& \Downarrow^{M'} \Sigma'' \tag{IH} \label{aux:compl_wr_ih}
 		\end{align}
 		By inversion of (\ref{aux:compl_wr_h1}) we find that $C = I; C^\bigstar$, we proceed by cases on the structure of $I$:
 		\begin{itemize}
 			\item \emph{assign, communication}: By further inversion of (\ref{aux:compl_wr_h1}) we find $C^\bigstar = C'$.\\
-			By definition of $\wr \cdot \wr$ we have: $\wr I; C' \wr = I;~\wr C' \wr$, thus using (\ref{aux:compl_wr_ih}) exists $M^* = \mu :: M'$
+			We now find:
+			$$\wr C \wr = \wr I; C^\bigstar \wr = \wr I; C' \wr = I;~\wr C' \wr$$
+				Using (\ref{aux:compl_wr_ih}) we construct $M^* = \mu :: M'$
 			\item \emph{selection, runtime term}:
-				By further inversion of (\ref{aux:compl_wr_h1}) we find $C^\bigstar = C'$.\\
-				By definition of $\wr \cdot \wr$ we have: $\wr I; C' \wr = \wr C'\wr$, thus using (\ref{aux:compl_wr_ih}) exists $M^* = M'$
-			\item \emph{function call}: By further inversion of (\ref{aux:compl_wr_h1}) we find \textbf{TODO: TROVIAMO CHE SEI STUPIDO}
+				By further inversion of (\ref{aux:compl_wr_h1}) we find $C^\bigstar = C'$ and $\Sigma = \Sigma'$.\\
+			We now find:
+			$$\wr C \wr = \wr I; C^\bigstar \wr = \wr I; C' \wr = \wr C' \wr$$
+				Using (\ref{aux:compl_wr_ih}) we construct $M^* = M'$
+			\item \emph{function call}: By further inversion of (\ref{aux:compl_wr_h1}) we find $X(\vec{p}) = C_X \in \mathscr{C}$, $C' = p_2 : X(\vec{p}~).C^\bigstar; \ldots; p_n : X(\vec{p}~).C^\bigstar; C_X[\vec{q}/\vec{p}~] \fatsemi C^\bigstar$ and $\Sigma = \Sigma'$\\
+			We now find:
+				$$\wr C \wr = \wr X(\vec{p}); C^\bigstar \wr = X(\vec{p}); \wr C^\bigstar \wr$$
+			Which can do a $\mu$ step of the operational semantics and reach:
+				$$p_2 : X(\vec{p}~).C^\bigstar; \ldots; p_n : X(\vec{p}~).C^\bigstar; \wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
+			Which can do $n-1$ steps $\tau@p_2, \ldots, \tau@p_n$ and reach
+				$$\wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
+				We now look at $C'$ and notice, by reasoning on the definition of \emph{process substitution} and \emph{sequantial composition} \textbf{TODO: in realtà questo è da dimostrare, ho fatto dimostrazione sketch su carta}:
+				$$ \wr C' \wr = \wr C_X[\vec{q}/\vec{p}~] \fatsemi C^\bigstar \wr =
+		\wr C_X[\vec{q}/\vec{p}~] \wr \fatsemi \wr C^\bigstar \wr =
+				\wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
+				Using (\ref{aux:compl_wr_ih}) we construct
+				$$ M^* = \mu :: \tau@p_2 :: \ldots :: \tau@p_n :: M'$$
+			\item \emph{conditional} (for brevity we will only consider the \emph{true} case, the other one follows by symmetry):
+				By further inversion of (\ref{aux:compl_wr_h1}) we find $C' = C_1 \fatsemi C^\bigstar$ and $\Sigma = \Sigma'$.\\
+				We now find:
+				$$
+				\wr C \wr = \wr~\text{if } p.e \text{ then } C_1 \text{ else } C_2;~C^\bigstar~\wr 
+				= \text{if } p.e \text{ then } \wr C_1 \wr \text{ else } \wr C_2\wr;~\wr C^\bigstar \wr 
+				$$
+				Which can do a $\mu$ step and reach:
+				$$ \wr C_1 \wr \fatsemi \wr C^\bigstar \wr = \wr C_1 \fatsemi C^\bigstar \wr = \wr C' \wr$$
+				Using (\ref{aux:compl_wr_ih}) we construct $M^* = \mu :: M'$
 		\end{itemize}
-	
 \end{itemize}
-
 
 \subsection{Extension of typing}\label{aux:ext_tj}
 This lemma creates tells us \emph{lifting} a choreography maintains typing.\\
