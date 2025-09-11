@@ -907,6 +907,14 @@ This problem will be properly addressed in \ref{chap:compl}. For now we will jus
 C = \lfloor \lceil C \rceil \rfloor
 \end{equation}
 
+Both lowering and lifting are defined also on \emph{procedure context}, as follows:
+\begin{align*}
+	\lfloor \mathscr{C} \rfloor &\triangleq
+\{X(\vec{p}) = \lfloor C \rfloor \mid X(\vec{p}) = C \in \mathscr{C}\}\\
+	\lceil \mathscr{C} \rceil &\triangleq
+\{X(\vec{p}) = \lceil C \rceil \mid X(\vec{p}) = C \in \mathscr{C}\}\\
+\end{align*}
+
 \subsection{Low equivalence of $\mathsf{[Chor]}$}
 We write \(C_1 \,\approx_{\mathsf{low}}\, C_2\) to denote \emph{low–equivalence} between choreographies.
 Intuitively, \(\approx_{\mathsf{low}}\) compares choreographies structurally, but \emph{forgets the
@@ -1317,7 +1325,7 @@ We proceed by induction on the size of $M$
 				$$p_2 : X(\vec{p}~).C^\bigstar; \ldots; p_n : X(\vec{p}~).C^\bigstar; \wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
 			Which can do $n-1$ steps $\tau@p_2, \ldots, \tau@p_n$ and reach
 				$$\wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
-				We now look at $C'$ and notice, by reasoning on the definition of \emph{process substitution} and \emph{sequantial composition} \textbf{TODO: in realtà questo è da dimostrare, ho fatto dimostrazione sketch su carta}:
+				We now look at $C'$ and notice, by reasoning on the definition of \emph{sequantial composition} and \emph{process substitution} (proven in Appendix \ref{appdix:A}):
 				$$ \wr C' \wr = \wr C_X[\vec{q}/\vec{p}~] \fatsemi C^\bigstar \wr =
 		\wr C_X[\vec{q}/\vec{p}~] \wr \fatsemi \wr C^\bigstar \wr =
 				\wr C_X\wr[\vec{q}/\vec{p}~] \fatsemi \wr C^\bigstar \wr$$
@@ -1336,7 +1344,35 @@ We proceed by induction on the size of $M$
 		\end{itemize}
 \end{itemize}
 
-\subsection{Extension of typing}\label{aux:ext_tj}
+\subsubsection{Ramifications on the semantic for procedure calls}
+Since, as we saw in the previous section, \emph{runtime terms} are irrelevant for the computation, we will now change the semantics for CALL-FIRST to the following rule:
+$$
+    \inferrule*[right=call-first] { X(\vec{q}~) = C \in \mathscr{C}}
+	{\langle X(\vec{p}~);C', \Sigma, \mathscr{C} \rangle \xrightarrow{\cdot} \langle C[\vec{q}/\vec{p}~] \fatsemi C', \Sigma, \mathscr{C} \rangle}
+$$
+The correctness of this change follows from the previous proof, since both rules have as result $\wr$-equivalent configurations (we will omit a formal discussion of this equivalence) the state reached by the computation is unchanged.\\
+The justification for not specifying the transition label associated with the inference rule is that we are going to mostly ignore the transition labels from now on.
+
+\subsubsection{Completeness of the instrumented semantics}
+We take a  $C, \mathscr{C}$ for which $\lceil \cdot \rceil$ is well defined.
+We have to prove that, given:
+$$
+\langle C, \lfloor \Sigma \rfloor, \mathscr{C}\rangle \Downarrow^M \Sigma'
+$$
+then there exists $\Sigma''$ such that:
+$$
+\langle \lceil C \rceil, \Sigma, \lceil \mathscr{C}\rceil\rangle \Downarrow \Sigma''
+\land \Sigma' = \lfloor \Sigma'' \rfloor 
+$$
+
+
+\noindent\textbf{Proof:}\\
+TODO: fai dimostrazione completa
+
+\subsubsection{Putting all the steps together}
+TODO: intuizione di perchè funziona
+
+\subsection{Completeness of type extension}\label{aux:ext_tj}
 This lemma creates tells us \emph{lifting} a choreography maintains typing.\\
 Formally:
 $$
@@ -1442,6 +1478,19 @@ $$
 		By unwinding (\ref{aux:unw}) we find $[C_2]^*,~[\Sigma]_2^*$ s.t. the low-equivalence is respected.
 		By preservation (\ref{aux:pres}) we find the hypothesis of well-typedness and well-formedness needed to use the induction hypothesis, with which we prove the conclusion.
 \end{itemize}
+
+\begin{appendices}
+\chapter{$\wr \cdot \wr$ preserved by syntactic transformations}
+\label{appdix:A}
+\textbf{TODO: finire, ho dimostrazione sketch su carta}
+\section{Sequential composition}
+We need to prove the following:
+$$\wr C_1 \fatsemi C_2 \wr = \wr C_1 \wr \fatsemi \wr C_2 \wr$$
+\section{Process substitution}
+We need to prove the following:
+$$\wr C [\vec{q}/\vec{p}] \wr = \wr C \wr [\vec{q}/\vec{p}]$$
+
+\end{appendices}
 
 
 \bibliographystyle{plain}

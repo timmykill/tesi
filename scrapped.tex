@@ -1,0 +1,10 @@
+%%%%%%%% Type judgment for expressions is sound
+We circumvent this by assuming there exists a sound typing relation $ \gamma,~pc \vdash e: \ell $.
+In this context, \emph{soundness} means that every time the typing judgment types an expression as $\ell \sqsubseteq low$, then the expression returns a non-bracketed value.
+
+Formally, we express this by saying that for every $\gamma$ in \textbf{SecPLab} well-formed with respect to $\sigma$ in \textbf{PStore}, $e$ in \textbf{Expr}, $\ell \in \MCL$ s.t. $\ell \sqsubseteq low$, $v$ in \textbf{[Val]} s.t. $\nexists~v',~v = [v]$ then:
+$$
+\gamma,~pc \vdash e: \ell \Rightarrow \sigma \vdash e \downarrow v
+$$
+
+In is to be noted that we do not require this typing judgment to be both \emph{sound and complete}, as we are not restrict in any way the expressiveness of expression evaluation and we do not want to incur in termination issues with the type-checking procedure.
