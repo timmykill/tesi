@@ -573,7 +573,7 @@ Most of the foundational work on non-interference\cite{sabelfeld2003language} bu
 
 For this goal, we introduce a \textit{procedure security context} \textbf{SecFunCtx}
 $$\Delta: \textbf{ProcName} \times \MCL \rightarrow 2^\textbf{SecCLab}$$
-such that, for every $X \in \textbf{ProcName}, ~ pc \in \MCL, ~ \Gamma ~ \in ~ \Delta ~ X ~ pc$, then the body of $X$ is \textit{well typed} under $\Gamma \text{ and } pc$.
+such that, for every $X, pc$ such that $\Gamma ~ \in ~ \Delta ~ X ~ pc$, then the body of $X$ is \textit{well typed} under $\Gamma \text{ and } pc$.
 
 Further discussion will follow on how to compute the context which carries this property, as of now its existence will simply be assumed.
 
@@ -777,12 +777,11 @@ The main intuition behind the introduction of $\Delta$ for typing procedure call
 
 \paragraph{Context subsumption}
 We say that \(\Delta\) satisfies \emph{context subsumption} if lowering the control level always maintains typing:
-for every procedure name $X$, every pair of program-counter labels $pc,pc'\in \MCL$, and every security environment $\Gamma$, 
-\[
+\begin{equation}\label{ass:ctx_sub}
   \Gamma \in \Delta~X~pc\ \wedge\ pc' \sqsubseteq pc
   \ \Longrightarrow\
   \Gamma \in \Delta~X~pc'
-\]
+\end{equation}
 
 Typing a call to \(X\) that is valid under a more restrictive (higher) control
   \(pc\) must remain valid when the analysis proves that control has become more public.
@@ -1373,29 +1372,77 @@ TODO: fai dimostrazione completa
 TODO: intuizione di perchè funziona
 
 \subsection{Completeness of type extension}\label{aux:ext_tj}
-This lemma creates tells us \emph{lifting} a choreography maintains typing.\\
+This lemma tells us that \emph{lifting} a choreography maintains typing.\\
 Formally:
 $$
 \Delta;\Gamma;\bot \vdash C \Rightarrow
 \Delta;\Gamma;\bot \vdash \lceil \wr C \wr \rceil
 $$
 
-\subsection{Preservation lemma}
-The preservation lemma (i.e. subject reduction) states that the operational semantics preserves typing, that is \emph{starting from a well typed configuration and executing a step of the semantics gives you a well typed configuration}.
-We are now working only in the instrumented semantics, thus we will omit the redundant brackets when sufficently clear.\\
-Given $C$ in \textbf{[Chor]}, $\Sigma$ in \textbf{[CStore]}, a configuration
-$\langle C, \Sigma, \mathscr{C}\rangle$ is well-typed for a $pc \in \MCL$ when
-$\Delta, \Gamma, pc \vdash C$ and $\Gamma \vdash \Sigma$
+\noindent\textbf{Proof:}\\
+The type judgment is clearly maintained by $\wr \cdot \wr$ because the only effect of the operator is to \emph{remove} instructions.
+The following is a more general case easy to verify by inverting the typing rule for sequences (which is basically a \emph{conjuction}):
+$$
+\Delta;\Gamma;\bot \vdash I;C \Rightarrow \Delta;\Gamma;\bot \vdash C
+$$
+We can verify that \emph{lifting} maintains typing by noticing that $\lceil C \rceil$ never introduces a \emph{bracketed} term and for any non bracketed term the typing rules are syntactically equivalent between \textbf{Chor} and \textbf{[Chor]}.
 
-Thus the preservation lemma is stated as follows:
+\subsection{Preservation lemma}
+The preservation lemma (i.e. subject reduction) states that the operational semantics preserves typing, that is \emph{starting from a well typed configuration executing a step of the semantics gives you a well typed configuration}.
+We are now working only in the instrumented semantics, thus we will omit the redundant brackets when sufficently clear.\\
+A configuration
+$\langle C, \Sigma, \mathscr{C}\rangle$ is well-typed for a $pc \in \MCL$ when:
+$$\Delta, \Gamma, pc \vdash C \quad \text{and}\quad \Gamma \vdash \Sigma$$
+The preservation lemma is stated as follows:
 \begin{equation}\label{aux:pres}
 \Delta, \Gamma, pc \vdash C \land \Gamma \vdash \Sigma \land 
 \langle C, \Sigma, \mathscr{C}\rangle \rightarrow
 \langle C', \Sigma', \mathscr{C}\rangle \Rightarrow 
 \Delta, \Gamma, pc \vdash C' \land \Gamma \vdash \Sigma'
 \end{equation}
-
 It is easy to see how the preservation lemma can be easily carried over to $\cdot \twoheadrightarrow \cdot$.
+
+\medskip
+\noindent\textbf{Proof:}\\
+The majority of the preservation proof follows directly from \cite{myers2011proving} thus we will explain only the part which differ.\\
+The main difference between our instrumented syntax and the language presented in \cite{myers2011proving} is the presence of recursive procedures.
+
+The inductive case that we have to consider is:
+\begin{align}
+	&\Delta,\Gamma,pc \vdash X(\vec{p})\label{aux:pres_Htj}\tag{H1}\\
+	&\langle X(\vec{p}), \Sigma, \mathscr{C}\rangle \rightarrow
+	\langle C_X[\vec{q}/\vec{p}], \Sigma, \mathscr{C}\rangle\label{aux:pres_Hlto}\tag{H2}\\
+	&X(\vec{q}) = C_X \in \mathscr{C}\label{aux:pres_Hlook}\tag{H3}
+\end{align}
+By inversion on (\ref{aux:pres_Htj}) we find:
+\begin{align}
+	&\Gamma' \in \Delta(X,pc) \label{aux:pres_Htj1}\tag{H11}\\
+	&\Gamma[\vec{q}\mapsto \vec{p}] \equiv_{\{\vec{q}\}} \Gamma'\label{aux:pres_Htj2}\tag{H12}
+\end{align}
+By definition of $\Delta$, then
+$$
+\Gamma' \in \Delta(X,pc) \Rightarrow \Delta, \Gamma', pc \vdash X_C
+$$
+We use the following lemmas to reach the conclusion:
+$$
+\Delta, \Gamma[\vec{p}/\vec{q}], pc \vdash C \Rightarrow
+\Delta, \Gamma, pc \vdash C[\vec{p}/\vec{q}]
+$$
+\begin{align*}
+	&\Delta, \Gamma, pc \vdash C\\
+	&\Rightarrow~ pn(C) \subseteq \vec{p}\\
+	&\Rightarrow~ \Gamma \equiv_{\{\vec{p}\}} \Gamma'\\
+	&\Rightarrow~ \Delta, \Gamma', pc \vdash C
+\end{align*}
+Central to the previous lemmas are assumptions TODO: parla delle assunzioni
+Dimostrazione non metterla, scrivi che è fatta in lean e basta
+
+
+
+
+\paragraph{pc subsumption:}
+Subsumption of procedures invocation is directly given by the assumption in \ref{ass:ctx_sub}
+
 
 \subsection{Unwinding lemma}
 The unwinding lemma states that the operational semantics preserves low-equal configurations. We formalize this as follows:\\
