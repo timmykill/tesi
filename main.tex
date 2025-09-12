@@ -1350,9 +1350,9 @@ We proceed by induction on the size of $M$
 $\qed$
 
 \subsubsection{Ramifications on the semantic for procedure calls}
-Since, as we saw in the previous section, \emph{runtime terms} are irrelevant for the computation, we will now change the semantics for CALL-FIRST to the following rule:
+Since, as we saw in the previous section, \emph{runtime terms} are irrelevant for the computation, we will now change the semantics for CALL-FIRST to the following rule, which also makes CALL-ENTER unreachable:
 $$
-    \inferrule*[right=call-first] { X(\vec{q}~) = C \in \mathscr{C}}
+    \inferrule*[right=call] { X(\vec{q}~) = C \in \mathscr{C}}
 	{\langle X(\vec{p}~);C', \Sigma, \mathscr{C} \rangle \xrightarrow{\cdot} \langle C[\vec{q}/\vec{p}~] \fatsemi C', \Sigma, \mathscr{C} \rangle}
 $$
 The correctness of this change follows from the previous proof, since both rules have as result $\wr$-equivalent configurations (we will omit a formal discussion of this equivalence) the state reached by the computation is unchanged.\\
@@ -1384,7 +1384,7 @@ so the conclusion follows with $\Sigma'' = \Sigma$
 \langle C^\star, \Sigma^\star, \mathscr{C}\rangle
 \label{aux:comp_h1}\tag{H1}\\
 &\langle C^\star, \Sigma^\star, \mathscr{C}\rangle
-\Downarrow^{.} \Sigma'
+\Downarrow^\cdot \Sigma'
 \label{aux:comp_h2}\tag{H2}\\
 &\forall~\Sigma^\heart, \lfloor \Sigma^\heart \rfloor = \Sigma^\star
 \Rightarrow \langle \lceil C^\star \rceil, \Sigma^\heart, \lceil \mathscr{C} \rceil\rangle \Downarrow \Sigma'' \land \lfloor \Sigma'' \rfloor = \Sigma'
@@ -1392,7 +1392,7 @@ so the conclusion follows with $\Sigma'' = \Sigma$
 \end{align}
 We proceed by inversion on (\ref{aux:comp_h1})
 \begin{itemize}
-\item \emph{LOCAL}: Inversion gives us:
+\item LOCAL: Inversion gives us:
 \begin{align}
 &C = p.x := e;~ C^\star \label{aux:comp_ass1}\tag{I1}\\
 &\lfloor \Sigma \rfloor~p \vdash e \downarrow v \label{aux:comp_ass2}\tag{I2}\\
@@ -1400,27 +1400,71 @@ We proceed by inversion on (\ref{aux:comp_h1})
 \end{align}
 By \emph{correctness} of the local evaluation (\ref{inst:loc_correct}) and (\ref{aux:comp_ass2}) we find:
 \begin{equation}\label{aux:comp_ass4}
-\Sigma~p \vdash e \downarrow v \quad \lor \quad
-\Sigma~p \vdash e \downarrow [v]
+\Sigma~p \vdash e \downarrow [v] \quad \lor \quad
+\Sigma~p \vdash e \downarrow v
 \end{equation}
 We proceed by cases on the hypothesis:
 \begin{itemize}
-\item \emph{case right}: 
+\item \emph{case left:}
 By definition of $\lceil \cdot \rceil$ we have:
 $$\lceil C \rceil = p.x := e;~\lceil C^\star \rceil$$
 We do the following execution steps:
 \begin{align*}
-&\langle p.x := e;~\lceil C^\star \rceil, \Sigma, \lceil \mathscr{C}\lceil\rangle\\
+&\langle p.x := e;~\lceil C^\star \rceil, \Sigma, \lceil \mathscr{C}\rceil\rangle\\
 &\rightarrow\langle \boldsymbol{0};~\lceil C^\star \rceil, \Sigma[p.x \mapsto [v]], \lceil \mathscr{C} \rceil \rangle\\
 &\rightarrow\langle \lceil C^\star \rceil, \Sigma[p.x \mapsto [v]], \lceil \mathscr{C} \rceil \rangle
 \end{align*}
 From which, using the fact that \textbf{TODO: andrebbe dimostrato}
 $$
-\lfloor\Sigma^\heart\rfloor = \lfloor \Sigma[p.x \mapsto [v] \rfloor = \lfloor \Sigma \rfloor[p.x \mapsto v] = \Sigma^\star
+		\lfloor\Sigma^\heart\rfloor = \lfloor \Sigma[p.x \mapsto [v]] \rfloor = \lfloor \Sigma \rfloor[p.x \mapsto v] = \Sigma^\star
 $$
 We can use the induction hypothesis (\ref{aux:comp_ih})
-\item \emph{case left:}
+\item \emph{case right:} We have two possible rules regarding assignment with (\ref{aux:comp_ass4}) as antecedent, depending on the value of $\Gamma~p~x$. We proceed by \emph{law of excluded middle} and find:
+\begin{equation}\label{aux:comp_ass5}
+\Gamma~p~x \not\sqsubseteq low \quad \lor \quad
+\Gamma~p~x \sqsubseteq low
+\end{equation}
+In the \emph{left case} we proceed exactly as the previously specified proof, adjusting the inference rule used for the first step. In the \emph{right case} we follow similarly, with the only difference being:
+$$
+\Sigma^\heart = \Sigma[p.x\mapsto v]
+$$
 \end{itemize}
+\item COM: The inductive case follows similarly to the LOCAL one, substituting $p.x$ with $q.x$ when needed.
+\item COND-THEN: Inversion gives us:
+\begin{align}
+&C = \text{if } p.e \text{ then } C_1 \text{ else } C_2;~ C';~ C' \label{aux:comp_then1}\tag{I1}\\
+	&C^\star = C_1 \fatsemi C'\label{aux:comp_then2}\tag{I2}\\
+&\lfloor \Sigma \rfloor~p \vdash e \downarrow true \label{aux:comp_then3}\tag{I3}\\
+&\Sigma^\star = \lfloor \Sigma \rfloor\label{aux:comp_then4}\tag{I4}
+\end{align}
+By definition of $\lceil \cdot \rceil$ we have:
+$$
+\lceil C\rceil = \text{if } p.e \text{ then } \lceil C_1\rceil \text{ else }\lceil C_2\rceil;~ \lceil C'\rceil
+$$
+We will use lemma (\ref{appdix:B}) and find:
+$$
+\langle \lceil C_1 \rceil, \Sigma, \lceil \mathscr{C} \rceil \rangle \twoheadrightarrow \langle \boldsymbol{0}, \Sigma^\dag, \lceil \mathscr{C} \rceil \rangle 
+\land
+\langle \lceil C' \rceil, \Sigma^\dag, \lceil \mathscr{C} \rceil \rangle \Downarrow \Sigma''
+$$
+Which let's us construct the following computation:
+\begin{align*}
+&\langle \text{if } p.e \text{ then } \lceil C_1\rceil \text{ else }\lceil C_2\rceil;~ \lceil C'\rceil, \Sigma, \lceil \mathscr{C}\rceil\rangle\\
+&\rightarrow \langle \lceil C_1\rceil;~ \lceil C'\rceil, \Sigma, \lceil \mathscr{C}\rceil\rangle\\
+&\twoheadrightarrow \langle \boldsymbol{0};~ \lceil C'\rceil, \Sigma^\dag, \lceil \mathscr{C} \rceil \rangle \\
+&\rightarrow \langle \lceil C'\rceil, \Sigma^\dag, \lceil \mathscr{C} \rceil \rangle\Downarrow \Sigma''
+\end{align*}
+\item COND-ELSE: This inductive step is symmetric with respect to COND-THEN
+\item CALL: \textbf{TODO: prima dimostra lemma di prima, visto che ti servirà anche qui}
+
+
+
+
+
+
+
+
+
 \end{itemize}
 \end{itemize}
 
@@ -1506,7 +1550,7 @@ We now introduce another lemma, proven in the \emph{lean} code but for which the
 The this lemma requires \emph{freshness of formal parameters} to be proven, assumed in \ref{ass:fresh}.
 We now remind ourself the conclusion to be proven, that is:
 $$
-\Delta, \Gamma, pc \vdash C_X[\vec{q}/\vec{p}]\land \Gamma \vdash \Sigma
+\Delta, \Gamma, pc \vdash C_X[\vec{q}/\vec{p}]\quad\land\quad \Gamma \vdash \Sigma
 $$
 The left-hand side is proven by the previous chain of steps.
 The right-hand side is easy to prove from hypothesis of the preservation lemma.
@@ -1607,6 +1651,18 @@ $$\wr C_1 \fatsemi C_2 \wr = \wr C_1 \wr \fatsemi \wr C_2 \wr$$
 \section{Process substitution}
 We need to prove the following:
 $$\wr C [\vec{q}/\vec{p}] \wr = \wr C \wr [\vec{q}/\vec{p}]$$
+\chapter{Decomposition of sequential composition execution}
+\label{appdix:B}
+\begin{align}
+\begin{split}
+&\langle \lceil C_1 \fatsemi C_2\rceil, \Sigma, \mathscr{C}\rangle \Downarrow \Sigma''\\
+&\Rightarrow 
+\langle \lceil C_1 \rceil, \Sigma, \mathscr{C} \rangle \twoheadrightarrow \langle \boldsymbol{0}, \Sigma', \mathscr{C} \rangle 
+\quad\land\quad
+\langle \lceil C_2 \rceil, \Sigma', \mathscr{C} \rangle \Downarrow \Sigma''
+\end{split}
+\end{align}
+
 
 \end{appendices}
 
