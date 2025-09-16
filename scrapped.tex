@@ -8,3 +8,58 @@ $$
 $$
 
 In is to be noted that we do not require this typing judgment to be both \emph{sound and complete}, as we are not restrict in any way the expressiveness of expression evaluation and we do not want to incur in termination issues with the type-checking procedure.
+
+
+
+
+%%%%%%%%%% Introduzione
+\chapter{Introduction} \label{chap:intro}
+\pagestyle{plain}
+\setcounter{page}{1}
+\textbf{TODO: riguarda alla fine}
+In this thesis we study how to enforce \emph{non‑interference} for choreographic programs using a \emph{type‑based} approach that we mechanize in a proof assistant.
+The central idea is to track how information may flow—both explicitly, through assignments and communications, and implicitly, through control flow—and to rule out programs whose low‑observable behaviour can be influenced by high‑confidential data.
+To this end, we design a compositional type-system indexed by a program‑counter label and by an environment of security labels for variables at each process.
+We prove that well‑typed choreographies are non‑interfering with respect to a user‑provided flow policy, and we mechanize the metatheory in Lean, obtaining machine‑checked soundness.
+Along the way, we isolate a few pragmatic design choices (e.g., how to account for procedure calls and concurrency) that make the rules both precise and amenable to mechanization.
+Finally, we discuss limitations and possible extensions (e.g., non-determinism and richer label models).
+
+
+
+%%%%%%%%%%%%% Background: proof assistants
+%%   + Proof assistants: Qui descrivo un po' le basi dei theorem prover: ovvero che si basano su curry-howard, dove il logical framework è calculus of inductive constructions per poi parlare velocemente di come è struttrato lean, convincendo il lettore che è una soluzione naturale e sound per meccanizzare questo tipo di dimostrazioni.
+%%       Qui parlerò della possibilità di estrarre codice verificato da dimostrazioni, utile per la costruzione di tool di questo tipo.
+%% QUI DEVI FAR CAPIRE CHE I PROOF ASSISTANT, E IN PARTICOLARE LEAN, HANNO SENSO PER DIMOSTRARE QUESTO TIPO DI COSE E CHE SE RIESCI A PRODURRE UN PROGRAMMA CHE TIPA ALLORA E' UNA BUONA DIMOSTRAZIONE\\
+% Why proof assistants here
+In our setting, proofs are not merely pen‑and‑paper artefacts but machine‑checked derivations.
+Using a proof assistant (Lean) brings two benefits: (i) we precisely define the language, the type-system, and the semantics, closing gaps that often hide in informal presentations; and (ii) via Curry–Howard, the typing rules become executable code, yielding a verified typechecker that we can run on examples.
+
+Proof assistants are software systems designed to aid in the construction and verification of formal proofs within a logical framework. Their foundations lie primarily on the Curry-Howard correspondence to prove soundness of the approach.
+\subsection{Calculus of Inductive Construction}
+The Calculus of Inductive Constructions (CIC) is a formal system that serves as the theoretical foundation for several modern proof assistants, most notably Coq and Lean.
+It combines two major features of type theory: dependent types and inductive types. Building upon the Curry-Howard correspondence, CIC enables a unified framework in which logical propositions are treated as types and proofs as programs. Unlike simpler systems based on the simply-typed lambda calculus, CIC supports abstraction over both terms and types, as well as the definition of data structures and inductive reasoning.
+\subsubsection{Dependent Types}
+The Calculus of Constructions (CoC) extends the simply-typed lambda calculus by introducing dependent function types. These allow the type of a function's output to depend on the value of its input. CoC distinguishes between three categories of entities:
+\begin{itemize}
+	\item{Terms} which represent programs or proofs
+	\item{Types} which classify terms, and
+	\item{Sorts} which classify types (e.g., Type : Type$_1$ or Prop : Type in Lean).
+\end{itemize}
+
+A key construct is the dependent product type, written $\Pi (x : A), B(x)$, which generalizes both universal quantification and function types. For instance:
+
+$\Pi (A : Type), A \rightarrow A$
+This type represents the polymorphic identity function. Under Curry–Howard, this also corresponds to the proposition: "for all A, A $\rightarrow$ A," and a term of this type is a proof of that proposition.
+
+The CoC, however, lacks mechanisms for defining user-specified data types such as natural numbers or lists. This gap is addressed in CIC by the addition of inductive types.
+
+\subsection{Lean theorem prover}
+Lean is an open‑source interactive theorem prover and programming language, developed by Microsoft Research and Carnegie Mellon University. At its heart is a lightweight trusted kernel built on dependant type theory, which can be configured to work using the CIC logical framework.
+\subsubsection{Kernel}
+\subsubsection{Tactics framework}
+Lean provides tactics as an approach to constructing proof terms.
+We can view a term as a representation of a construction or mathematical
+proof; tactics are commands, or instructions, that describe how to build such a
+term.
+\subsubsection{White box automation}
+\subsubsection{Mathlib3}

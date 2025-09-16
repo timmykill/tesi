@@ -1,0 +1,12 @@
+* Estensioni: Non-Determinism (nella introduzione, parte in cui parli di
+  non-interference)
+  parla delle difficoltà del parlare di programmi non-deterministici, e
+  parla delle soluzioni adottate nella letteratura
+  (BONUS: qui potrei parlare di decentralize label model, ma alla fine
+  l'abbiamo abbandonato quindi ha senso solo se ne voglio poi parlare nelle
+  future estensioni)
+* Estensioni: Visto che non sappiamo come i processi comunicano tra di loro,
+  sarebbe interessante associare un livello di sicurezza anche ai canali, e
+  modificare di conseguenza la definizione di non-interferenza per rendere i
+  canali osservabili da un attaccante
+
