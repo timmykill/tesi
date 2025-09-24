@@ -563,14 +563,14 @@ As the smallest relation following the following inference schema:
 \noindent\textbf{Constant}
 \[
   \inferrule{}
-  {\gamma \vdash c : \bot}
+  {\gamma \vdash v : \bot}
 \]
 
 \medskip
 \noindent\textbf{Variable}
 \[
   \inferrule{}
-  {\gamma \vdash x : \Gamma~p~x}
+  {\gamma \vdash x : \gamma~x}
 \]
 
 \medskip
@@ -1165,7 +1165,7 @@ $\lceil \cdot \rceil$ is well-defined. Part of the completeness proof will be sh
 Since \textbf{Chor} and \textbf{[Chor]} have multiple small but significant differences, we proceed the completeness proof by composing consecutive steps:
 
 \subsubsection{Removal of non-determinism in the semantics}
-We can easily verify how the semantics given in \ref{background:choreographies} is non-deterministic meaning that given the same configuration it can admit multiple, different, execution steps. It is also to be noted that the instrumented semantics is defined as fully deterministic: any configuration that admits an execution step admits just one.
+We can easily verify how the semantics given in \ref{background:choreographies} is non-deterministic (\emph{i.e} out-of-order): given the same configuration it can admit multiple, different, execution steps. It is also to be noted that the instrumented semantics is defined as fully deterministic: any configuration that admits an execution step admits just one.
 %Confluence means that is proving that all maximal executions from the same state yield the same observable result.
 
 The first step to reach completeness is to prove that this non-determinism can be discarded.
@@ -1176,7 +1176,17 @@ This goal is achieved by considering a semantics for choreography where the rule
     \inferrule*[right=call-first] { X(\vec{q}~) = C \in \mathscr{C} \\ \vec{p} = p_1, \ldots, p_n }
 	{\langle X(\vec{p}~);C', \Sigma, \mathscr{C} \rangle \xrightarrow{\tlint{p_1}} \langle p_2 : X(\vec{p}~).C'; \ldots; p_n : X(\vec{p}~).C'; C[\vec{q}/\vec{p}~] \fatsemi C', \Sigma, \mathscr{C} \rangle}
 $}}
-\smallskip
+
+\bigskip
+\noindent It is to be noted how the new CALL-FIRST is a special case of the previous one. This leads us to see how deterministic transitions are a subset of the transitions admitted in the reference semantics.
+
+The proof of completeness of the deterministic semantics follows from the work from Cruz-Filipe, Montesi and Peressotti\cite{cruz2023formal}\footnote{The language and semantics defined in the paper has some trivial differences yet it is easy to see how the proofs presented there can be carried over to the language and semantics used in this thesis} which proves some important properties of the semantics, those being:
+\begin{itemize}
+\item\emph{deadlock freedom:} Any choreography that is not $\boldsymbol{0}$ can execute.
+\item\emph{diamond property:} Any two distinct one-step reductions from the same state are reconcilable: there exist further reductions from each successor that lead to an identical state.
+\item\emph{convergence:} Any two executions of a choreography that end
+in a terminated choreography must finish in the same state.
+\end{itemize}
 
 \begin{wrapfigure}{r}{0.35\textwidth}
   \centering
@@ -1195,8 +1205,10 @@ $}}
        at ($(C)!0.45!(C2)$) {};
 
   \draw[->] (C) -- node[left=4pt] {$\mu_1$} (C1);
+  \draw[->, densely dashed] (C2) -- node[above=2pt] {$\mu_1$} (C1p);
 
   \draw[->] (C1) -- node[left=4pt] {$\mu_2$} (C1p);
+
   \node[cross out,draw,thick,minimum size=5pt,inner sep=0pt]
        at ($(C1)!0.35!(C1p)$) {};
 
@@ -1215,8 +1227,11 @@ $}}
 \end{tikzpicture}
 \end{wrapfigure}
 
-While a full proof of completeness of the deterministic semantics is not given, the following diagram gives the intuition: $C$ is able to do a step in the reference semantics and reach a $C_1$ configuration, while in the deterministic semantics (denoted with the crossed arrow) $C$ reaches a \emph{different} $C_2$.
-Assuming the computation from $C$ as terminating in the reference semantics, it is always reachable a common configuration $C'$ from both $C_1$ and $C_2$ using the deterministic semantics. Moreover no maximal computation can end with a non deterministic transition, so it's always possible to \emph{close} the depicted diagram.
+\noindent Using the previously stated properties, we proceed by a graphical proof: $C$ is able to do a step in the reference semantics and reach a $C_1$ configuration, while in the deterministic semantics (denoted with the crossed arrow) $C$ reaches a \emph{different} $C_2$.
+By the diamond property, there is a $\mu_1$ from $C_2$ to $C_1'$ (depicted as a dashed arrow). Since we can \emph{compose diamonds} we can repeat this step the zero or more times necessary to \emph{wait} for $\mu_1$ to be deterministic.
+Moreover no maximal computation can end with a non deterministic transition (which is a trivial lemma of deadlock freedom) which gives us the existence of this transition.
+Thus, assuming the computation from $C$ as terminating in the reference semantics, it is always reachable a common configuration $C'$ from both $C_1$ and $C_2$ using the deterministic semantics.\\
+It is easy to see by cases on the reference semantics how if from $C$ there are not two different one-step reachable $C_1, C_2$ then the transition is in the deterministic subset.
 
 The new semantics is deterministic as defined above: any configuration that admits an execution step admits just one, completely specified by the first instruction of the choreography. From now the deterministic semantics will be the semantics considered for \textbf{Chor}.
 
