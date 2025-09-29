@@ -1878,14 +1878,14 @@ $$
 	&\delta~X = \vec{q}, \eta_X, E_X \tag{H2}\\
 	&\text{\underline{cansolve}}~E_X[\vec{q}/\vec{p}~][\eta_X/\eta]~\Gamma~pc\tag{H3}
 \end{align*}
-We introduce the following lemmas proven in Appendix \ref{appdix:rec:cansolve_sub}:
+We introduce the following lemmas: the first one follows from \emph{Single eta} and the second one is proven in Appendix \ref{appdix:rec:cansolve_sub}:
 \begin{align*}
 \text{\underline{cansolve}}~E[\eta/\eta']~\Gamma~pc
 &\Rightarrow \text{\underline{cansolve}}~E~\Gamma~pc\\
 \text{\underline{cansolve}}~E[\vec{q}/\vec{p}~]~\Gamma~pc
 &\Rightarrow \text{\underline{cansolve}}~E~\Gamma[\vec{q}\mapsto\vec{p}~]~pc
 \end{align*}
-On (H3), which gives us:
+We apply these lemmas to (H3), which gives us:
 $$
 \text{\underline{cansolve}}~E_X~\Gamma[\vec{q}\mapsto\vec{p}~]~pc
 $$
@@ -2092,10 +2092,111 @@ $\qed$
 \chapter{Helper lemmas for constraint reconstruction}
 \section{Monotonicity of $\upphi_\mathscr{C}$}
 \label{appdix:rec:monotono}
+To define and prove monotonicity we first need to define an order relation on \textbf{ProcConstr}. We define it as follows:
+$$
+\delta_1 \le \delta_2 \quad\triangleq\quad \forall X,~\delta_1~X\subseteq \delta_2~X
+$$
+By unrolling the definition of $\upphi_\mathscr{C}$ the reduce the proof of monotonicity to the following theorem:
+$$
+\delta_1 \le \delta_2~\land~ \delta_1,\eta\vdash C\rhd E_1 ~\land~\delta_2,\eta\vdash C\rhd E_2 \quad\Longrightarrow \quad E_1 \subseteq E_2
+$$
+
+\noindent\textbf{Proof:}\\
+We proceed by structural induction on $C$. The majority of cases are trivial because the typing rules compute $E_1, E_2$ such that $E_1 = E_2$.\\
+The only interesting case is $C = X(\vec{p})$. By inverting $\cdot \vdash \cdot \rhd \cdot$ we find:
+$$
+E_{X,1} \subseteq E_{X,2}
+$$
+Since $\subseteq$ is preserved by equal substitutions the conclusion holds. $\qed$
+
 \section{Rewriting $\eta$ in \underline{cansolve}}
 \label{appdix:rec:cansolve_pc}
+We need to prove:
+\begin{align*}
+&\text{\underline{cansolve}}~E[\eta/\eta' \sqcup \Uppsi]~\Gamma~pc
+\quad\land\quad (\forall pc', \llbracket \Uppsi \rrbracket~\Gamma~pc'=\ell)\\
+&\Longrightarrow \text{\underline{cansolve}}~E~\Gamma~(pc\sqcup\ell)
+\end{align*}
+
+\noindent \textbf{Proof:}\\
+By unfolding the definition of \underline{cansolve} we can reduce the theorem to the following:
+$$
+\llbracket \Uppsi^\star[\eta/\eta' \sqcup \Uppsi]\rrbracket~\Gamma~pc \sqsubseteq \Gamma~q.y~
+\land (\forall pc', \llbracket \Uppsi \rrbracket~\Gamma~pc'=\ell)\Longrightarrow~
+\llbracket \Uppsi^\star\rrbracket~\Gamma~(pc \sqcup \ell) \sqsubseteq \Gamma~q.y
+$$
+We proceed by induction on $\Uppsi^\star$:
+\begin{itemize}
+\item \emph{case bottom:} Trivial
+\item \emph{case p.x:} 
+$$
+\llbracket p.x[\eta/\cdot]\rrbracket~\Gamma~pc =\llbracket p.x\rrbracket~\Gamma~pc' = \Gamma~p.x
+$$
+\item \emph{case $\eta$:} 
+$$
+\llbracket \eta[\eta/\eta' \sqcup \Uppsi]\rrbracket~\Gamma~pc =
+\llbracket \eta' \sqcup \Uppsi \rrbracket~\Gamma~pc =
+\llbracket \eta'\rrbracket~\Gamma~pc~\sqcup~
+\llbracket \Uppsi \rrbracket~\Gamma~pc =
+pc \sqcup \ell
+$$
+While simultaneously:
+$$
+\llbracket \eta\rrbracket~\Gamma~(pc\sqcup\ell) = pc \sqcup\ell
+$$
+\item \emph{case sup:} This case follows easily using the inductive hypothesis,\\
+$\llbracket \Uppsi_1^\star \sqcup \Uppsi_2^\star \rrbracket = 
+\llbracket \Uppsi_1^\star \rrbracket \sqcup \llbracket \Uppsi_2^\star \rrbracket \quad\text{and}\quad
+(\Uppsi_1^\star \sqcup \Uppsi_2^\star)[\eta/\cdot]= 
+\Uppsi_1^\star [\eta/\cdot]\sqcup \Uppsi_2^\star[\eta/\cdot]$
+\end{itemize}
+
 \section{Substitution in \underline{cansolve}}
 \label{appdix:rec:cansolve_sub}
+We need to show:
+$$
+\text{\underline{cansolve}}~E[\vec{q}/\vec{p}~]~\Gamma~pc
+\Longrightarrow \text{\underline{cansolve}}~E~\Gamma[\vec{q}\mapsto\vec{p}~]~pc
+$$
+
+\noindent\textbf{Proof:}\\
+For brevity we consider only the scalar case: the extension is trivial if $\vec{q}$ is taken sufficiently fresh (as assumed in \ref{ass:fresh}). By unfolding \underline{cansolve} we reduce the theorem to the following:
+$$
+\llbracket \Uppsi[q/p]\rrbracket~\Gamma~pc \sqsubseteq \Gamma~(r.y[q/p])
+\Longrightarrow \llbracket \Uppsi\rrbracket~\Gamma[q\mapsto p]~pc \sqsubseteq \Gamma[q\mapsto p]~r.y
+$$
+We proceed by induction on the structure of $\Uppsi$:
+\begin{itemize}
+\item \emph{case bottom:} Trivial
+\item \emph{case s.x:} We have:
+$$
+\llbracket s.x[q/p]\rrbracket~\Gamma~pc \sqsubseteq \Gamma~(r.y[q/p])
+$$
+Which by definition of $\llbracket \cdot \rrbracket$ can be rewritten into:
+$$
+\Gamma~(s.x[q/p]) \sqsubseteq \Gamma~(r.y[q/p])
+$$
+While simultaneously we have:
+$$
+\llbracket s.x\rrbracket~\Gamma[q\mapsto p]~pc \sqsubseteq \Gamma[q\mapsto p]~r.y
+$$
+Which can be rewritten into:
+$$
+\Gamma[q\mapsto p]~s.x \sqsubseteq \Gamma[q\mapsto p]~r.y
+$$
+The equation of the two constraints follows from the following lemma:
+$$
+\Gamma[q\mapsto p]~r = \Gamma~r[q/p]
+$$
+Which was proven in \emph{lean} as part of the proof of the unwinding lemma (\ref{aux:unw}).
+
+\item \emph{case $\eta$:} Trivial
+\item \emph{case sup:} This case follows easily using the inductive hypothesis,\\
+$\llbracket \Uppsi_1^\star \sqcup \Uppsi_2^\star \rrbracket = 
+\llbracket \Uppsi_1^\star \rrbracket \sqcup \llbracket \Uppsi_2^\star \rrbracket \quad\text{and}\quad
+(\Uppsi_1^\star \sqcup \Uppsi_2^\star)[\eta/\cdot]= 
+\Uppsi_1^\star [\eta/\cdot]\sqcup \Uppsi_2^\star[\eta/\cdot]$
+\end{itemize}
 
 \end{appendices}
 
