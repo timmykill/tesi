@@ -1652,15 +1652,15 @@ $$
 \;\Longrightarrow\;
 \forall\,\Gamma \in \mathcal{G}.\ \Delta;\Gamma;pc \vdash C
 $$
-This property can be stated as follows: every declared procedure must typecheck under every security environment that \(\Delta\) admits for it (at any program counter). It is to be noted that we do the lookup yields an empty set of admissible environments in the case of untypable procedure at a certain $pc \in \MCL$ i.e.\ \(\Delta~X~pc=\varnothing\).
-\item \emph{pc subsumption of context}: For any procedure in $\Delta$, we want the typing to be maintained when lowering the control level, defined formally (in \ref{ass:ctx_sub}) as:
+This property can be stated as follows: every declared procedure must typecheck under every security environment that \(\Delta\) admits for it (at any program counter). It is to be noted that the lookup yields an empty set of admissible environments in the case of untypable procedure at a certain $pc$ i.e.\ \(\Delta~X~pc=\varnothing\).
+\item \emph{pc subsumption of context}: For any procedure in $\Delta$, we want the typing to be maintained when lowering the control level, defined formally in \ref{ass:ctx_sub} as:
 $$
   \Gamma \in \Delta~X~pc\ \wedge\ pc' \sqsubseteq pc
   \ \Longrightarrow\
   \Gamma \in \Delta~X~pc'
 $$
 \end{itemize}
-Those are the two properties used for the previous proof of non-interference with respect to $\Delta$. In the following sections we will take ideas and terminology from the practice of \emph{type reconstruction}\cite{pierce2002types}.
+Those are the two properties assumed as true and used for the previous proof of non-interference. In the following sections we will take ideas and terminology from the practice of \emph{type reconstruction}\cite{pierce2002types}.
 
 \section{Context reconstruction algorithm}
 The key idea behind constructing $\Delta$ is inferring from every function $X(\vec{q}) = C_X$ in $\mathscr{C}$ a list of \emph{constraints} such that, if $\Gamma$ satisfies those constraints, then it well-types $C_X$.
@@ -1680,7 +1680,7 @@ That is, the semantics of a bound is defined as a map that computes the level as
 \llbracket \uppsi_1 \sqcup \uppsi_2 \rrbracket~\gamma &= (\llbracket \uppsi_1 \rrbracket~\gamma) \sqcup (\llbracket \uppsi_2 \rrbracket~\gamma)
 \end{align*}
 
-We now define the procedure of bound reconstruction $\vdash e \rhd \uppsi$ that, given an \textbf{Expr} $e$ it returns the \emph{correct} bound:
+We now define the procedure of bound reconstruction $\vdash e \rhd \uppsi$ that, given an \textbf{Expr} $e$ it returns the associated bound:
 \begin{mathpar}
 \inferrule{}{ \vdash v \rhd \bot }
 \and
@@ -1699,7 +1699,7 @@ We now state and prove the \emph{correctness} of this algorithm with respect to 
 \end{equation}
 
 \noindent\textbf{Proof:}\\
-We proceed by induction on $\cdot \vdash \cdot \rhd \cdot$
+We proceed by induction on $e$
 \begin{itemize}
 \item \emph{constant:} we have the following:
 $$
@@ -1729,18 +1729,18 @@ $$
 $\qed$
 
 \subsection{Choreography reconstruction}
-The main idea remains the same as before, with a few changes.
+The main idea remains the same as before.
 We firstly define the syntactic category \textbf{Bound}:
 $$
 \Uppsi ::= \bot \mid p.x \mid \eta \mid \Uppsi \sqcup \Uppsi
 $$
-where $p.x \in \textbf{Pid} \times \textbf{Var}$, $\eta$ for a new set \textbf{Fresh} of variables \emph{always considered sufficiently fresh}. $\eta$ will represent the security level of $pc$ in bounds.
+where $p.x \in \textbf{Pid} \times \textbf{Var}$, $\eta$ taken from a set \textbf{Fresh} of variables \emph{always considered sufficiently fresh}. $\eta$ will represent the security level of $pc$ in bounds.
 
-We also define the syntactic category \textbf{Constraint} (the name is self-explanatory):
+\noindent We define the syntactic category \textbf{Constraint} (the name is self-explanatory):
 $$
 \omega ::= \Uppsi \sqsubseteq p.x
 $$
-We also define a \emph{constraint context} (\textbf{ProcConstr}) $\delta: \textbf{ProcName} \rightarrow \textbf{Finset Constraint}$ which maps every procedure to the associated finite set of constraints.\\
+We define a \emph{constraint context} (\textbf{ProcConstr}) $\delta: \textbf{ProcName} \rightarrow \textbf{Finset Constraint}$ which maps every procedure to the associated finite set of constraints.\\
 We can now define the constraint reconstruction procedure $\delta, \eta\vdash C\rhd\Uppsi$ as follows:
 $$
 \inferrule{\vdash e \rhd \uppsi_e\quad\Uppsi_p =\text{bind }\uppsi_e~p}
@@ -1765,15 +1765,15 @@ $$
 $$
 \inferrule{}{\delta, \eta \vdash \boldsymbol{0} \rhd \emptyset}
 $$
-Substitution in constraint sets is defined naturally.\\
-The function bind is also defined as \emph{lifting} an \textbf{ExprBound} into a \textbf{Bond} by binding every \textbf{Var} into the corresponding $\textbf{Pid} \times \textbf{Var}$
+Substitution in a constraint set is defined naturally.\\
+The function bind is defined as \emph{lifting} an \textbf{ExprBound} into a \textbf{Bond} by binding every \textbf{Var} into the corresponding $\textbf{Pid} \times \textbf{Var}$
 
 We can already state a first lemma, which will be useful in the following:\\
 \textbf{Single eta}: For each constraint reconstruction $E$ such that:
 $$
 \delta, \eta \vdash C \rhd E
 $$
-Then the only element of \textbf{Fresh} that can appear in $E$ is $\eta$. It is to be noted that it is admitted for $E$ to have no element of \textbf{Fresh}.
+Then the only element of \textbf{Fresh} that can appear in $E$ is $\eta$, given that this property is respected for every $\eta_X, E_X$ in $\delta$. It is to be noted that it is admitted for $E$ to have no element of \textbf{Fresh}.
 
 \noindent\textbf{Proof:} The proof easily follows by induction and is left to the reader. $\qed$
 
@@ -1782,33 +1782,35 @@ We now define a couple functions that relate constraints with security contexts:
 \text{\underline{cansolve}}~&(E: \textbf{Finset Constraint})~(\Gamma: \textbf{SecCLab})~(pc: \MCL): \textbf{Proc} :=\\
 &\forall~(\Uppsi \sqsubseteq p.x) \in E,~\llbracket \Uppsi \rrbracket~\Gamma~pc \sqsubseteq \Gamma~p.x
 \end{align*}
-$\llbracket \cdot\rrbracket$ for \textbf{Bound} is the natural extension from the one for \textbf{ExprBound}.
+Where $\llbracket \cdot\rrbracket$ for \textbf{Bound} is the natural extension from the one for \textbf{ExprBound}.
 \begin{align*}
 \text{\underline{gen}}~&(\delta: \textbf{ProcConstr}): \textbf{ProcName} \rightarrow \MCL \rightarrow \textbf{Finset SecCLab} :=\\
-&\lambda~(X: \textbf{ProcName}).~\lambda~(pc: \MCL).~\{ \Gamma \mid \text{\underline{cansolve}}~(\delta~X)~\Gamma~pc\}
+&\lambda~X.~\lambda~pc.~\{ \Gamma \mid \text{\underline{cansolve}}~(\delta~X)~\Gamma~pc\}
 \end{align*}
 
 \section{Proof of well-typedness}
-We are looking to prove that, given a $\mathscr{C}$ we can use the type reconstruction algorithm to create a $\delta$ such that $\text{\underline{gen}} ~\delta$ creates a \emph{well-typed context} (\ref{ass:wellt_ctx}) with respect to $\mathscr{C}$.
+We are looking to prove that given a $\mathscr{C}$ we can use the type reconstruction algorithm to create a $\delta$ such that $\text{\underline{gen}} ~\delta$ creates a \emph{well-typed context} (\ref{ass:wellt_ctx}) with respect to $\mathscr{C}$.
 
 \subsection{Creating $\delta$}
 We start by defining a monotonic operator $\upphi_\mathscr{C}: \textbf{ProcConstr} \rightarrow \textbf{ProcConstr}$ as follows:
 $$
 \upphi_\mathscr{C}: \delta \mapsto (X \mapsto E_X)
 $$
-Where $X(\vec{q}) = C_X \in \mathscr{C}$ and $E_X$ is computed with $\delta, \eta\vdash C_X \rhd E_X$\\
+Where $X(\vec{q}) = C_X \in \mathscr{C}$ and $E_X$ is computed as $\delta, \eta\vdash C_X \rhd E_X$\\
 $\upphi_\mathscr{C}$ creates a delta by applying \emph{one pass} of constraint reconstruction to every procedure in the procedure context. This is needed because procedures can be mutually recursive thus we need multiple passes to construct all constraints correctly. Proof of monotonicity of $\upphi_\mathscr{C}$ is addressed in Appendix \ref{appdix:rec:monotono}.
 \subsection{One step soundness}
 We proceed by stating and proving the following:
-\begin{align*}
+\begin{align}
+\begin{split}\label{rec:one_step}
 &\Delta = \text{\underline{gen}}~\delta\\
 &\Rightarrow \delta, \eta \vdash C \rhd E\\
 &\Rightarrow \text{\underline{cansolve}}~E~\Gamma~pc\\
 &\Rightarrow \Delta, \Gamma, pc \vdash C
-\end{align*}
+\end{split}
+\end{align}
 
 \noindent\textbf{Proof:}
-We proceed by induction on $\cdot \vdash \cdot \rhd \cdot$
+We proceed by induction on $C$
 \begin{itemize}
 \item\emph{case: assignment.} By inversion and unrolling the definition of \underline{cansolve} we have the following hypothesis:
 \begin{align}
@@ -1835,16 +1837,16 @@ $$
 \Delta, \Gamma, pc \vdash p.x := e
 $$
 
-\item\emph{case: communication.} The case follows similarly to the previous one
+\item\emph{case: communication.} The case follows similarly from the previous one
 \item\emph{case: conditional.} We have the following hypothesis:
 \begin{align}
-&\vdash e \rhd \upphi_e \tag{H1}\\
+&\vdash e \rhd \uppsi_e \tag{H1}\\
 &\Uppsi_p =~\text{bind}~\uppsi_e~p\tag{H2}\\
 &\delta, \eta_1' \vdash C_1 \rhd E_1 \tag{H3}\\
 &\delta, \eta_2' \vdash C_2 \rhd E_2 \tag{H4}\\
 &\text{\underline{cansolve}}~(E_1[\eta/\eta_1' \sqcup \Uppsi_p] ~\cup~ E_2[\eta/\eta_2' \sqcup \Uppsi_p])~\Gamma~pc \tag{H5}\\
-\forall~~pc^\star,~&\text{\underline{cansolve}}~E_1~\Gamma~pc^\star \Rightarrow \Delta, \Gamma^\star, pc^\star \vdash C_1 \tag{IH1}\\
-\forall~pc^\star,~&\text{\underline{cansolve}}~E_2~\Gamma~pc^\star \Rightarrow \Delta, \Gamma^\star, pc^\star \vdash C_2 \tag{IH2}
+\forall~~pc^\star,~&\text{\underline{cansolve}}~E_1~\Gamma~pc^\star \Rightarrow \Delta, \Gamma, pc^\star \vdash C_1 \tag{IH1}\\
+\forall~pc^\star,~&\text{\underline{cansolve}}~E_2~\Gamma~pc^\star \Rightarrow \Delta, \Gamma, pc^\star \vdash C_2 \tag{IH2}
 \end{align}
 As before, we can use (H1), lemma (\ref{rec:expr_corr}) and (H2) to find:
 $$
@@ -1861,9 +1863,9 @@ $$
 $$
 We now the following lemma (proved in Appendix \ref{appdix:rec:cansolve_pc})
 \begin{align*}
-&\text{\underline{cansolve}}~E[\eta/\eta' \sqcup \Uppsi]~\Gamma~pc\\
-&\Rightarrow (\forall pc', \llbracket \Uppsi \rrbracket~\Gamma~pc'=\ell')\\
-&\Rightarrow \text{\underline{cansolve}}~E~\Gamma~(pc\sqcup\ell')
+&\text{\underline{cansolve}}~E[\eta/\eta' \sqcup \Uppsi]~\Gamma~pc
+\quad\land\quad (\forall pc', \llbracket \Uppsi \rrbracket~\Gamma~pc'=\ell')\\
+&\Longrightarrow \text{\underline{cansolve}}~E~\Gamma~(pc\sqcup\ell')
 \end{align*}
 We see how the second premise is true for the considered $\ell$: no $pc$ appears in (A1).\\
 We thus use (IH1) to find the required typing:
@@ -1871,14 +1873,84 @@ $$
 \Delta, \Gamma, (pc \sqcup \ell) \vdash C_1
 $$
 \item\emph{case: procedure call.} We have the following hypothesis:
-
-
+\begin{align*}
+	&\Delta = \text{\underline{gen}}~\delta\tag{H1}\\
+	&\delta~X = \vec{q}, \eta_X, E_X \tag{H2}\\
+	&\text{\underline{cansolve}}~E_X[\vec{q}/\vec{p}~][\eta_X/\eta]~\Gamma~pc\tag{H3}
+\end{align*}
+We introduce the following lemmas proven in Appendix \ref{appdix:rec:cansolve_sub}:
+\begin{align*}
+\text{\underline{cansolve}}~E[\eta/\eta']~\Gamma~pc
+&\Rightarrow \text{\underline{cansolve}}~E~\Gamma~pc\\
+\text{\underline{cansolve}}~E[\vec{q}/\vec{p}~]~\Gamma~pc
+&\Rightarrow \text{\underline{cansolve}}~E~\Gamma[\vec{q}\mapsto\vec{p}~]~pc
+\end{align*}
+On (H3), which gives us:
+$$
+\text{\underline{cansolve}}~E_X~\Gamma[\vec{q}\mapsto\vec{p}~]~pc
+$$
+From (H2), (H1) and the definition of \underline{gen} we get:
+$$
+\Gamma[\vec{q}\mapsto\vec{p}~] \in \Delta~X~pc
+$$
+Thus we can use the typing rule for procedure calls, selecting $\Gamma' = \Gamma[\vec{q}\mapsto\vec{p}]$. By reflexivity is it trivial to show:
+$$
+\Gamma[\vec{q}\mapsto\vec{p}] \equiv_{\{\vec{q}\}} 
+\Gamma[\vec{q}\mapsto\vec{p}]
+$$
 \end{itemize}
+$\qed$
+\subsection{Well-typed $\delta$}
+By our definition, \textbf{ProcConstr} can be considered as finite, this holds because we are working with a finite $\MCL$ and because the number of procedure names mentioned in a finite choreography is always finite.
+By Knaster-Tarski theorem\cite{tarski1955lattice}, there exists a \emph{least fixed point} for $\upphi_\mathscr{C}$. Let us now reason on the previous results:\\
+A trivial lemma of \ref{rec:one_step} is the following:
+\begin{align*}
+&\Delta = \text{\underline{gen}}~\delta_1\\
+&\Rightarrow \delta_2 = \upphi_\mathscr{C}~\delta_1\\
+&\Rightarrow \text{\underline{cansolve}}~(\delta_2~X)~\Gamma~pc\\
+&\Rightarrow \Delta,\Gamma,pc \vdash C_X
+\end{align*}
+We can thus see that, choosing as $\delta_1$ a fixed point $\mu\upphi_\mathscr{C}$ and by using the definition of \underline{gen} this lemma becomes:
+\begin{align*}
+&\Delta = \text{\underline{gen}}~\mu\upphi_\mathscr{C}\\
+&\Rightarrow \Gamma~\in~\Delta~X~pc\\
+&\Rightarrow \Delta,\Gamma,pc \vdash C_X
+\end{align*}
+Which makes $\Delta$ a \emph{well-typed security procedure context}. $\qed$
 
 \section{Proof of pc subsumption}
-\section{Termination}
-\section{Extension to full type inference}
+We remind ourselves the statement of pc subsumption for contexts:
+$$
+\Delta = \text{\underline{gen}}~\delta~\land~\Gamma\in\Delta ~X~pc~\land~pc' \sqsubseteq pc \Longrightarrow \Gamma \in \Delta~X~pc'
+$$
 
+\noindent\textbf{Proof:}
+By definition of \underline{gen} we can rewrite the statement as follows:
+$$
+\text{\underline{cansolve}}~E~\Gamma~pc
+~\land~pc'\sqsubseteq pc~\Longrightarrow
+\text{\underline{cansolve}}~E~\Gamma~pc'
+$$
+Which we can further decompose by unfolding the definition of \underline{cansolve} into:
+$$
+\llbracket \Uppsi\rrbracket~\Gamma~pc\sqsubseteq p.x\land~pc'\sqsubseteq pc\Longrightarrow \llbracket \Uppsi\rrbracket~\Gamma~pc'\sqsubseteq p.x
+$$
+Which becomes:
+$$
+pc'\sqsubseteq pc\Longrightarrow \llbracket \Uppsi\rrbracket~\Gamma~pc'\sqsubseteq \llbracket\Uppsi\rrbracket~\Gamma~pc
+$$
+Which is easily proven reasoning inductively on the structure of $\Uppsi$.$\qed$
+
+\section{Termination}
+Since all the operations functions defined work on finite structures, there will always be a terminating algorithm to compute them.
+
+\section{Extension to full type inference}
+The algorithm we defined is very similar to type-inference\cite{pierce2002types}, but a few aspects need to be treated formally to consider it so. Let us now give an overview of the main ones.
+\begin{itemize}
+\item \emph{Reconstruction of constraints for the configuration's choreography}. This should not be any harder than to reconstruct constraints from the procedure context. A way forward would be to consider the configuration's choreography as an \emph{unnamed} procedure inside the context.
+\item \emph{Proof of completeness of the constraint reconstruction algorithm with respect to the type checking}. This requires creating an order relation on the \textbf{Constraint} set, such that it is possible to define a \emph{minimal} set of constraints. Afterwards, the proof would follow by proving that every $\Gamma$ typing a choreography would satisfy the minimal set of constraints reconstructed for that choreography.
+\end{itemize}
+We do not address these topics in this thesis because of the limited time available.
 
 \chapter{Lean mechanization}
 
@@ -2022,6 +2094,8 @@ $\qed$
 \label{appdix:rec:monotono}
 \section{Rewriting $\eta$ in \underline{cansolve}}
 \label{appdix:rec:cansolve_pc}
+\section{Substitution in \underline{cansolve}}
+\label{appdix:rec:cansolve_sub}
 
 \end{appendices}
 
