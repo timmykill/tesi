@@ -288,6 +288,7 @@ The operator is defined as follows, both on \textit{choreographies} and \textit{
 \end{align*}
 
 \subsubsection{Process substitution}
+\label{intro:chor_subst}
 The name substitution of a process $p$ is defined as:
 \begin{align*}
     p[r/s] \triangleq
@@ -648,13 +649,15 @@ Let us now focus on the second antecedent of the rule by defining two new operat
 Given lists of processes $\vec{q} = q_1,\dots,q_n$ and $\vec{p} = p_1,\dots,p_n$ (always considered of equal length), we write
 $\Gamma[\vec{q}\mapsto \vec{p}]$
 for the environment obtained from $\Gamma$ by updating the context pointed by each $p_i$ to mirror the one pointed by $q_i$. Formally (in the scalar case):
-\begin{align*}
-	\Gamma[q/p]~r \triangleq
+\begin{align}
+\begin{split}\label{def:context_renaming}
+	\Gamma[q \mapsto p]~r \triangleq
     \begin{cases}
     &\Gamma~p \quad \text{if $q = r$}\\
     &\Gamma~r \quad \text{otherwise}
     \end{cases}
-\end{align*}
+\end{split}
+\end{align}
 \paragraph{Restricted equality}
 For a finite set of processes $S$, write $\Gamma \equiv_S \Gamma'$ when $\Gamma$ and $\Gamma'$ agree on all variables of all processes in $S$. Formally, considering extensional equality between maps:
 $$ \Gamma \equiv_S \Gamma' ~~~\triangleq~~~ \forall r \in S,~~~\Gamma~r = \Gamma'~r$$
@@ -1542,9 +1545,9 @@ $$
 \Delta,\Gamma[\vec{q}\mapsto\vec{p}],pc \vdash C_X
 $$
 
-We now introduce another lemma, proven in the \emph{lean} code but for which the proof (for the same reasons as above) will not be reproduced in this document.
+We now introduce another lemma, proven in the \emph{lean} code but for which the proof (for the same reasons as above) will not be reproduced in this document.\label{aux:pres_lemma1}
 
-\begin{equation*}\label{aux:pres_lemma1}
+\begin{equation*}
 \Delta, \Gamma[\vec{q}\mapsto\vec{p}], pc \vdash C \Rightarrow
 \Delta, \Gamma, pc \vdash C[\vec{q}/\vec{p}]
 \end{equation*}
@@ -1957,10 +1960,147 @@ The algorithm we defined is very similar to type-inference\cite{pierce2002types}
 We do not address these topics in this thesis because of the limited time available.
 
 \chapter{Lean mechanization}
-\textbf{TODO: scrivi}
+\section{Project Structure}
+%TODO: un idea generale della struttura del progetto (quindi file/cosa includo/...)
+\subsection{Naming Conventions}
+Spiega che D = $\Delta$, ps = $\vec{p}$ ....
+
+\subsection{Imported Definitions and Results}
+\label{lean:imports}
+
+
+\section{Coverage of the Mechanization}
+% TODO: che cosa ho effettivamente dimostrato su lean e cosa non ho fatto per mancanza di tempo
+\section{Core Definitions and Theorems}
+spiega tj\_bc, SecFunCtx, SecCLab, $\MCL$
+% Tipi induttivi, def. e teoremi principali 
+
+\section{An Illustrative Example}
+We will now show the lean implementation of the following lemma, used in section \ref{aux:pres_lemma1}. Let us remind ourselves the lemma statement:
+\begin{equation*}
+\Delta, \Gamma[\vec{q}\mapsto\vec{p}~], pc \vdash C \Longrightarrow
+\Delta, \Gamma, pc \vdash C[\vec{q}/\vec{p}~]
+\end{equation*}
+In lean, the same statement is expressed as:
+\begin{samepage}
+\begin{verbatim}
+def tj_substs {D: @SecFunCtx L} {G: SecCLab} {pc: L} {c: BrChor}
+    {ps qs: List Pid} {Hlen: ps.length = qs.length}:
+    fresh_functx D
+    -> @tj_bc _ _ low tjeval D (secclab_substs G ps qs Hlen) pc c
+    -> @tj_bc _ _ low tjeval D G pc (c.substitutions ps qs Hlen)
+\end{verbatim}
+\end{samepage}
+As we can see, most of the assumptions which are treated as implicit in the pen and paper proof here need to be made explicit.
+\begin{itemize}
+\item \emph{Same length of $\vec{p}$ and $\vec{q}$}: In this document, we always assumed same lenght from the arguments of every substitution operation. Let us now see how the substitution is defined in the lean code:
+\begin{verbatim}
+def BrChor.substitutions (c: BrChor) (ps qs: List Pid)
+    (H: ps.length = qs.length): BrChor :=
+        match ps, qs with
+        | hp::tp, hq::tq =>
+            BrChor.substitutions (c.substitution hp hq) tp tq
+                (by simp_all)
+        | [], [] => c
+\end{verbatim}
+Where \texttt{BrChor.substitutions} performs \textbf{Pid} substitution for choreographies as defined in \ref{intro:chor_subst}.
+We see how the function is only defined for inputs of the same length, and how this requirement allows us to ignore the impossible pattern matching cases.
+
+\item \emph{Fresh parameters for $\Delta$}:
+We want to encode the assumption \emph{freshness of formal parameters} as defined in \ref{ass:fresh}.
+\begin{verbatim}
+def fresh_functx (D: @SecFunCtx L) :=
+    forall (pc: L) (X: ProcName) (qs: List Pid) (ps: Finset Pid),
+    qs = Prod.fst (D X pc) -> Disjoint ps qs.toFinset
+\end{verbatim}
+It is to be noted how this property is too restricting, since it can be used with $qs = ps$ to prove that every procedure has an empty list of arguments. While this is technically incorrect, it is a necessary requirements for the semantics as specified in \ref{lean:imports} (which were thus outside of my control). A cleaner solution would be to define $\mathscr{C}$ as a \emph{partial} function with a finite image, such that we can enforce a partitioning of the set \textbf{Pid} between the procedures and the \emph{main} choreography.
+\end{itemize}
+\subsubsection{Context Renaming}
+We now see how the function \texttt{secclab\_substs} encodes the \emph{context renaming} operator as defined in \ref{def:context_renaming}. The function is defined as follows:
+\begin{samepage}
+\begin{verbatim}
+def secclab_substs (G: @SecCLab L) (p q: List Pid)
+    (h: p.length = q.length): @SecCLab L := match p, q with
+       | hp::tp, hq::tq =>
+            secclab_subst (secclab_substs G tp tq
+                (by simp only 
+                    [List.length_cons, add_left_inj] at h
+                 apply h))
+            hp hq
+       | [], [] => G
+\end{verbatim}
+\end{samepage}
+Where \texttt{secclab\_subst} is the function dealing with scalar substitution, defined as follows:
+\begin{samepage}
+\begin{verbatim}
+def secclab_subst (G: @SecCLab L) (p q: Pid): @SecCLab L
+    := lambda r => if p = r then G q else G r
+\end{verbatim}
+\end{samepage}
+
+\subsubsection{Proof}
+Let us now see the proof body in lean, omitting the uninteresting induction cases.
+\begin{samepage}
+\begin{verbatim}
+        intro Hfresh H1
+        induction H1
+        case tass l' Htjeval Hsub =>
+            rw [BrChor.substitutions.inversion_ass]
+            apply tj_bc.tass (l' := l')
+            case a => simp_all [sec_substs_of_pid_substs]
+            case a => simp_all [sec_substs_of_pid_substs]
+        case tcond Heval _ _ IH1 IH2 =>
+            rw [BrChor.substitutions.inversion_cond]
+            rw [sec_substs_of_pid_substs (G := G)] at Heval
+            apply tj_bc.tcond Heval IH1 IH2
+        case tcall G' pc x ps' qs' Hlen Hg Hqs Hgam =>
+            rw [BrChor.substitutions.inversion_call]
+            dsimp [fresh_functx] at Hfresh
+            apply tj_bc.tcall Hg Hqs
+            have Hdis1 := Disjoint.symm (Hfresh pc x qs' ps'.toFinset Hqs)
+            have Hdis3 := Disjoint.symm (Hfresh pc x qs' qs.toFinset Hqs)
+            apply gam_res_eq_trans
+            apply (gam_res_eq_symm (gamsubsts_helper Hdis1 Hdis3))
+            apply Hlen
+            apply Eq.trans Hlen pids_substs_length
+            apply Hgam
+\end{verbatim}
+\end{samepage}
+Let us unpack what happens in this code snippet:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Explanation.}
+The goal is to turn a derivation for $C$ under the substituted environment $\Gamma[\vec{q}\mapsto\vec{p}]$ into a derivation for the syntactically substituted command $C[\vec{q}/\vec{p}]$ under $\Gamma$. In the shown branch the last rule is a \emph{call}. The proof proceeds as follows.
+
+\begin{itemize}
+  \item \emph{Invert substitution through calls.} We first rewrite the goal using the inversion lemma for substitution on calls, which exposes the shape of the substituted actual/formal parameter lists and aligns the goal with the premises of the typing rule for calls.
+
+  \item \emph{Unfold freshness to obtain disjointness.} The global freshness hypothesis ensures that the processes being renamed do not collide with those already in scope. Unfolding this hypothesis yields two disjointness facts: the set of names coming from the renaming is disjoint from both the formals and the actuals appearing in the call. These disjointness conditions are exactly what is needed to commute independent renamings.
+
+  \item \emph{Commute environment renamings.} Using the disjointness facts, we apply a commuting-lemma for environment updates to show that the residual environment obtained by first applying the global renaming and then accounting for the call coincides with the environment obtained by accounting for the call and then applying the renaming. We use symmetry and transitivity of environment equality to rewrite the goal into the form expected by the call rule.
+
+  \item \emph{Preserve arity.} The proof then discharges the side condition that the lengths of the actual and formal parameter lists match. This follows because simultaneous renaming preserves list length, hence the equality used by the call rule is maintained.
+
+  \item \emph{Reconstruct the call derivation.} With the environment in the right shape, the arity condition settled, and the original premises for looking up the procedure body unchanged by the benign renaming, we can apply the typing rule for calls and complete the branch.
+\end{itemize}
+
+Intuitively, the branch shows that substitution is \emph{structure-preserving} for calls: freshness guarantees that no capture occurs, commuting lemmas normalize the order of independent renamings, and arity is invariant under renaming. Consequently, the typing derivation can be reconstructed under the original environment while the syntax of the command is renamed.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 \begin{appendices}
-\chapter{Proofs on Syntactic Transformations}
+\chapter{Proofs on Syntactic Trhansformations}
 \label{appdix:A}
 \section{Sequential Composition and $\wr \cdot \wr$}
 We need to prove the following:
