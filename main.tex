@@ -698,9 +698,9 @@ The soundness theorem states that \emph{well-typed programs satisfy termination 
 \]
 To fully specify this theorem, we need to define an equivalence relation that encodes the concept of \emph{low-equivalence under termination insensitive non-interference}.
 To join this need with the semantics presented in \ref{background:choreographies}, we introduce a \emph{natural semantics}\cite{kahn1987natural} for choreographies. We define a relation:
-$$
+\begin{equation}\label{nat_sem}
 \langle C, \Sigma, \mathscr{C} \rangle \Downarrow^M \Sigma'
-$$
+\end{equation}
 Where:
 \begin{itemize}
 	\item $C \in \textbf{Chor}$: Choreography
@@ -1960,20 +1960,112 @@ The algorithm we defined is very similar to type-inference\cite{pierce2002types}
 We do not address these topics in this thesis because of the limited time available.
 
 \chapter{Lean mechanization}
-\section{Project Structure}
-%TODO: un idea generale della struttura del progetto (quindi file/cosa includo/...)
-\subsection{Naming Conventions}
-Spiega che D = $\Delta$, ps = $\vec{p}$ ....
+\section{Naming Conventions}
+In the following, a few naming conventions are different and should be considered:
+\begin{align*}
+\texttt{L} &\triangleq \MCL &\texttt{ps} &\triangleq \vec{p}\\
+\texttt{D} &\triangleq \Delta & \texttt{G} &\triangleq \Gamma
+\end{align*}
 
-\subsection{Imported Definitions and Results}
+\section{Imported Definitions and Results}
 \label{lean:imports}
 
+\section{Project Structure}
+The project is divided in multiple files to deal with the length and complexity of the proof. These files are the following:
+\begin{itemize}
+\item \texttt{Common.lean} This file contains all the definitions which are needed by all the other files in the project. For example \emph{security labeling} \ref{type:flow-policy}:
+\begin{samepage}
+\begin{verbatim}
+-- Security Labeling for Variables of a Processes
+abbrev SecPLab := Var -> L
+-- Security Labeling for Variables "Globally"
+abbrev SecCLab := Pid -> @SecPLab L
+\end{verbatim}
+\end{samepage}
+Or \emph{security context for procedures}:
+\begin{samepage}
+\begin{verbatim}
+def SecFunCtx := ProcName -> L -> (List Pid x Finset (@SecCLab L))
+\end{verbatim}
+\end{samepage}
+
+\item \texttt{Syntax.lean} This file contains the definition of the instrumented semantics, encoded as an inductive type and all related lemmas and definition (for example substitution, low equality).
+
+\item \texttt{Semantics.lean} This file contains both the natural semantics as defined in \ref{nat_sem} and the operational semantics for instrumented choreographies. Both relations are defined as inductive types. Let us see the signatures for them:
+\begin{samepage}
+\begin{verbatim}
+inductive Chor.natsem {sig: EvalSig}:
+    CConf -> List TransitionLabel -> CStore -> Prop where
+    ...
+
+inductive BrChor.lto {G: @SecCLab L}: BrConf -> BrConf -> Prop where
+    ...
+\end{verbatim}
+\end{samepage}
+\item \texttt{Typing.lean} This file contains the typing relation as defined in \ref{type:formal} and all the helper lemmas used in the proofs. The relation is encoded as an mutually inductive type, with the following signature:
+\begin{samepage}
+\begin{verbatim}
+mutual
+inductive tj_i {D: @SecFunCtx L} {G: @SecCLab L}:
+    L -> Instruction -> Prop where
+    ...
+
+inductive tj_c {D: @SecFunCtx L} {G: @SecCLab L}:
+    L -> Choreography -> Prop where
+    ...
+end
+\end{verbatim}
+\end{samepage}
+\item \texttt{LowerLiftStx.lean} In this file are defined and mechanized all the lowering/lifting functions which this document treated at a more abstract level. A great deal of helper and inversion lemmas are needed to make the definitions usable in the proofs. To cite some numbers, the file is composed of 1389 \emph{lines of code} for 8 lowering/lifting functions. Let us see a few cases of the lifting function for choreography, to see how the issue of $\wr \cdot \wr$ was dealt with:
+\begin{samepage}
+\begin{verbatim}
+mutual
+def lift_i (i: Instruction) (H1: no_choice_i i)
+    (H2: no_rtcall_i i): BrChor := match i with
+    | Instruction.assign p e x => BrChor.ass p e x
+    | Instruction.cond p e c1 c2 => BrChor.cond p e
+        (lift_c c1 (...) (...))
+        (lift_c c2 (...) (by dsimp [no_rtcall_i] at H2;
+                             apply And.right H2))
+    | Instruction.rtcall q x ps c => (by exfalso; apply H2)
+
+def lift_c (c: Choreography) (H1: no_choice_c c)
+    (H2: no_rtcall_c c): BrChor := match c with
+    | Choreography.nil => BrChor.nil
+    | Choreography.seq i c' => BrChor.seq
+        (lift_i i (...) (...))
+        (lift_c c' (...) (by dsimp [no_rtcall_c] at H2;
+                             apply And.right H2))
+end
+\end{verbatim}
+\end{samepage}
+Where \texttt{no\_rtcall} is defined as follows (in file \texttt{Common.lean}):
+\begin{samepage}
+\begin{verbatim}
+mutual
+def no_rtcall_i (i: Instruction): Prop := match i with
+    | Instruction.rtcall _ _ _ _ => False
+    | Instruction.cond _ _ c1 c2 => no_rtcall_c c1 /\ no_rtcall_c c2
+    | _ => True
+
+def no_rtcall_c (c: Choreography): Prop := match c with
+    | Choreography.nil => True
+    | Choreography.seq i c' => no_rtcall_i i /\ no_rtcall_c c'
+end
+\end{verbatim}
+\end{samepage}
+\item \texttt{Completeness.lean} The main theorem defined in this file is \ref{aux:compl}. I was not able to finish the proof in lean for time related reasons. This is the reason why the completeness proof was described in deeper detail in this document.
+\item \texttt{Preservation.lean} The main theorem proved in this file is \ref{aux:pres}. In the same file are defined and proved helper lemmas (for example \emph{pc subsumption} and typing for instrumented local expressions).
+\item \texttt{Unwinding.lean} The main theorem proved in this file is \ref{aux:unw}. In the same file are defined and proved helper lemmas (for example the \emph{high step lemma}\cite{myers2011proving} and helper lemmas for low equality of instrumented stores).
+\item \texttt{NonInt.lean} This file contains the main proof, corresponding to \ref{main:def}.
+All the other files of the project are imported in this one to be able to define and prove the main theorem.
+\end{itemize}
 
 \section{Coverage of the Mechanization}
-% TODO: che cosa ho effettivamente dimostrato su lean e cosa non ho fatto per mancanza di tempo
-\section{Core Definitions and Theorems}
-spiega tj\_bc, SecFunCtx, SecCLab, $\MCL$
-% Tipi induttivi, def. e teoremi principali 
+Many results described in this document have been mechanized and are present in the lean code, but not all.
+Two main results are simply admitted and were only proved by pen and paper: \emph{completeness of the reference semantics with respect to the instrumented semantics} and \emph{construction of $\Delta$}.\\
+These two sections were not represented in lean for time constraints: any non-trivial lemma requires me to have first a pen and paper presentation, this is because it is very easy to concentrate on the syntactical aspects of the proof and to lose sight of the overall strategy.
+Moreover, once the proof strategy is clear, the process of encoding it in lean can be very time consuming, and it is sometimes difficult to correctly predict which proof steps are going to be the most challenging. Sometimes half a page paper presentations become hundreds and hundreds of line of code.
 
 \section{An Illustrative Example}
 We will now show the lean implementation of the following lemma, used in section \ref{aux:pres_lemma1}. Let us remind ourselves the lemma statement:
@@ -2039,6 +2131,7 @@ def secclab_subst (G: @SecCLab L) (p q: Pid): @SecCLab L
 \end{samepage}
 
 \subsubsection{Proof}
+For the rest of the chapter, there is an important note to make: my proof style in lean can be considered mostly \emph{backward chaining}\cite{al2015comparison}, that is, I tend to manipulate the goal more than the available hypothesis.
 Let us now see the proof body in lean, omitting the uninteresting induction cases.
 \begin{samepage}
 \begin{verbatim}
@@ -2066,41 +2159,26 @@ Let us now see the proof body in lean, omitting the uninteresting induction case
             apply Hgam
 \end{verbatim}
 \end{samepage}
-Let us unpack what happens in this code snippet:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\paragraph{Explanation.}
-The goal is to turn a derivation for $C$ under the substituted environment $\Gamma[\vec{q}\mapsto\vec{p}]$ into a derivation for the syntactically substituted command $C[\vec{q}/\vec{p}]$ under $\Gamma$. In the shown branch the last rule is a \emph{call}. The proof proceeds as follows.
-
+Let us unpack what happens in this code snippet: The proof follows by induction on the typing derivation \texttt{tj\_bc}. We will explain the cases for \emph{assignment}, \emph{conditionals} and \emph{procedure calls}.
 \begin{itemize}
-  \item \emph{Invert substitution through calls.} We first rewrite the goal using the inversion lemma for substitution on calls, which exposes the shape of the substituted actual/formal parameter lists and aligns the goal with the premises of the typing rule for calls.
-
-  \item \emph{Unfold freshness to obtain disjointness.} The global freshness hypothesis ensures that the processes being renamed do not collide with those already in scope. Unfolding this hypothesis yields two disjointness facts: the set of names coming from the renaming is disjoint from both the formals and the actuals appearing in the call. These disjointness conditions are exactly what is needed to commute independent renamings.
-
-  \item \emph{Commute environment renamings.} Using the disjointness facts, we apply a commuting-lemma for environment updates to show that the residual environment obtained by first applying the global renaming and then accounting for the call coincides with the environment obtained by accounting for the call and then applying the renaming. We use symmetry and transitivity of environment equality to rewrite the goal into the form expected by the call rule.
-
-  \item \emph{Preserve arity.} The proof then discharges the side condition that the lengths of the actual and formal parameter lists match. This follows because simultaneous renaming preserves list length, hence the equality used by the call rule is maintained.
-
-  \item \emph{Reconstruct the call derivation.} With the environment in the right shape, the arity condition settled, and the original premises for looking up the procedure body unchanged by the benign renaming, we can apply the typing rule for calls and complete the branch.
+\item \emph{assignment}: The inductive cases gives us hypothesis for the typing of the expression and on the order relation between $\ell$ and $\Gamma~p~x$.\\
+The first step rewrites the goal from:\\
+\texttt{tj\_bc D G pc ((BrChor.ass p e x).substitutions ps qs Hlen)}\\
+to \texttt{tj\_bc D G pc (BrChor.ass (pid\_substs p ps qs Hlen) e x)}.
+Thus enabling us to use the typing rule for assignments.
+The two assumptions of the typing rule are discharged by the proof search mechanism of lean, using as helper lemma the following (which is used on \texttt{Heval} to make it compatible with the needed assumption):
+\begin{verbatim}
+lemma sec_substs_of_pid_substs {G: @SecCLab L}
+    {r: Pid} {ps qs: List Pid} {Hlen}:
+    (secclab_substs G ps qs Hlen) r = G (pid_substs r ps qs Hlen)
+\end{verbatim}
+\item \emph{conditional}: The inductive case gives us hypothesis for the typing of the expression, and two inductive hypothesis for the two branches.
+The typing of the expression is dealt exactly as in the previous case, but to be able to use the typing rule on the goal we need to apply the inductive hypothesis.
+\item \emph{procedure call}: We first rewrite the goal so that the call is exposed with the actual parameter renamings applied. We then unfold the freshness assumption \texttt{fresh\_functx} to obtain the two disjointness facts needed to commute the two independent renamings (on the formal parameters of $X$ and on the $\vec{q}$ of the outer substitution). With these in place we can apply the typing rule \texttt{tj\_bc.tcall}, discharging its \emph{declaration} and \emph{freshness} premises with \texttt{Hg} and \texttt{Hqs}. The remaining (non-trivial) obligation concerns the result-context side condition: we transport \texttt{Hgam} along the equality produced by \texttt{gamsubsts\_helper} (commutation under disjoint substitutions), using \texttt{gam\_res\_eq\_symm} and \texttt{gam\_res\_eq\_trans} to align orientations. Finally, the arity check is settled by \texttt{Hlen} together with \texttt{pids\_substs\_length}, which ensures that applying \texttt{pid\_substs} preserves list lengths. Altogether, these steps re-establish the call typing judgment under the renamed context, completing this case.
 \end{itemize}
 
-Intuitively, the branch shows that substitution is \emph{structure-preserving} for calls: freshness guarantees that no capture occurs, commuting lemmas normalize the order of independent renamings, and arity is invariant under renaming. Consequently, the typing derivation can be reconstructed under the original environment while the syntax of the command is renamed.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 \begin{appendices}
-\chapter{Proofs on Syntactic Trhansformations}
+\chapter{Proofs on Syntactic Transformations}
 \label{appdix:A}
 \section{Sequential Composition and $\wr \cdot \wr$}
 We need to prove the following:
