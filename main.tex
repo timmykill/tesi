@@ -1969,6 +1969,12 @@ In the following, a few naming conventions are different and should be considere
 
 \section{Imported Definitions and Results}
 \label{lean:imports}
+\subsection{Encoding of $\MCL$}
+\emph{Mathlib 4}\cite{mathlib4} was used as library in the project, so we could take advantage of the previous effort of mechanization of established math results.\\
+The biggest contribution taken from the library was the \texttt{Mathlib.Order.Lattice} module, which was used to encode $\MCL$ by defining it as a \emph{type variable} which implements the \texttt{Lattice}, \texttt{DecidableLE} and \texttt{Bot} \emph{type classes}.
+\subsection{Reference choreographies}
+Ongoing research is being done by Xueying Qin and Fabrizio Montesi at SDU to mechanize the language defined in \ref{background:choreographies}.
+My work builds on theirs, importing the needed definitions and results. The main imported constructs are the following: procedure context implementation, syntax and semantics for reference choreographies.
 
 \section{Project Structure}
 The project is divided in multiple files to deal with the length and complexity of the proof. These files are the following:
@@ -1985,7 +1991,8 @@ abbrev SecCLab := Pid -> @SecPLab L
 Or \emph{security context for procedures}:
 \begin{samepage}
 \begin{verbatim}
-def SecFunCtx := ProcName -> L -> (List Pid x Finset (@SecCLab L))
+def SecFunCtx :=
+    ProcName -> L -> (List Pid x Finset (@SecCLab L))
 \end{verbatim}
 \end{samepage}
 
@@ -1998,7 +2005,8 @@ inductive Chor.natsem {sig: EvalSig}:
     CConf -> List TransitionLabel -> CStore -> Prop where
     ...
 
-inductive BrChor.lto {G: @SecCLab L}: BrConf -> BrConf -> Prop where
+inductive BrChor.lto {G: @SecCLab L}:
+    BrConf -> BrConf -> Prop where
     ...
 \end{verbatim}
 \end{samepage}
@@ -2174,9 +2182,100 @@ lemma sec_substs_of_pid_substs {G: @SecCLab L}
 \end{verbatim}
 \item \emph{conditional}: The inductive case gives us hypothesis for the typing of the expression, and two inductive hypothesis for the two branches.
 The typing of the expression is dealt exactly as in the previous case, but to be able to use the typing rule on the goal we need to apply the inductive hypothesis.
-\item \emph{procedure call}: We first rewrite the goal so that the call is exposed with the actual parameter renamings applied. We then unfold the freshness assumption \texttt{fresh\_functx} to obtain the two disjointness facts needed to commute the two independent renamings (on the formal parameters of $X$ and on the $\vec{q}$ of the outer substitution). With these in place we can apply the typing rule \texttt{tj\_bc.tcall}, discharging its \emph{declaration} and \emph{freshness} premises with \texttt{Hg} and \texttt{Hqs}. The remaining (non-trivial) obligation concerns the result-context side condition: we transport \texttt{Hgam} along the equality produced by \texttt{gamsubsts\_helper} (commutation under disjoint substitutions), using \texttt{gam\_res\_eq\_symm} and \texttt{gam\_res\_eq\_trans} to align orientations. Finally, the arity check is settled by \texttt{Hlen} together with \texttt{pids\_substs\_length}, which ensures that applying \texttt{pid\_substs} preserves list lengths. Altogether, these steps re-establish the call typing judgment under the renamed context, completing this case.
+\item \emph{procedure call}: We first, as we did in the previous inductive cases, invert the process substitution to be able to use the call typing rule. The function lookup part of the typing derivation remains the same (which finds $\Gamma', \vec{r}$), thus it remains to prove the following:
+$$
+\Gamma' \equiv_L \Gamma[\vec{q} \mapsto \vec{p}~][\vec{r} \mapsto \vec{s}]
+\Longrightarrow 
+\Gamma' \equiv_L \Gamma[\vec{q} \mapsto \vec{p}~[\vec{r}/\vec{s}]]
+$$
+From the freshness of the procedure parameters we have that
+$$\vec{r} \cap (\vec{q} ~\cup ~\vec{p}~) = \emptyset$$
+And from the fact that $\equiv_L$ is an equivalence relation, we can reduce the goal to
+\begin{align*}
+&\vec{r} \cap \vec{q} = \emptyset\\
+&\Longrightarrow \vec{r} \cap \vec{p} = \emptyset\\
+&\Longrightarrow \Gamma[\vec{q} \mapsto \vec{p}~][\vec{r} \mapsto \vec{s}]
+\equiv_L \Gamma[\vec{q} \mapsto \vec{p}~[\vec{r}/\vec{s}]]
+\end{align*}
+Which is proven by the lemma \texttt{gamsubsts\_helper}, as can be seen by it's signature:
+\begin{samepage}
+\begin{verbatim}
+lemma gamsubsts_helper {ps qs rs ss: List Pid}
+    {G: @SecCLab L} {Hlen1 Hlen2 Hlen3}:
+    Disjoint ss.toFinset rs.toFinset
+    -> Disjoint ss.toFinset qs.toFinset
+    -> gam_res_eq ss.toFinset
+        (secclab_substs
+            (secclab_substs G ps qs Hlen1) ss rs Hlen2)
+        (secclab_substs G ss (pids_substs rs ps qs Hlen1) Hlen3)
+\end{verbatim}
+\end{samepage}
+The proof of this lemma will be described in the next section.
 \end{itemize}
+$\qed$
 
+\subsubsection{Proof of \texttt{gamsubsts\_helper}}
+To understand it, we need to detail two more definitions:
+\begin{samepage}
+\begin{verbatim}
+def gam_res_eq (ps: Finset Pid) (g1 g2: @SecCLab L): Prop :=
+    forall (p: Pid), p in ps -> g1 p = g2 p
+
+def Pid.substitution (p : Pid) (r : Pid) (s : Pid) : Pid :=
+  if p = r then s else p
+
+def pid_substs (r: Pid) (ps qs: List Pid)
+    (H: ps.length = qs.length): Pid :=
+    match ps, qs with
+    | hp::tp, hq::tq =>
+        pid_substs (r.substitution hp hq) tp tq (by simp_all)
+    | [], [] => r
+
+def pids_substs (rs ps qs: List Pid)
+    (H: ps.length = qs.length): List Pid :=
+    match rs with
+    | h::t => (pid_substs h ps qs H) :: (pids_substs t ps qs H)
+    | [] => []
+\end{verbatim}
+\end{samepage}
+Which are considered self-explanatory. We also describe two helper lemmas:
+\begin{samepage}
+\begin{verbatim}
+lemma helper23718 {G G': @SecCLab L} {qs ps ps': List Pid}
+    (Hlen1: qs.length = ps.length)
+    (Hlen2: qs.length = ps'.length):
+    Disjoint qs.toFinset ps.toFinset
+    -> Disjoint qs.toFinset ps'.toFinset
+    -> List.Forall (lambda a => G (Prod.fst a) = G' (Prod.snd a))
+                   (List.zip ps ps')
+    -> gam_res_eq qs.toFinset (secclab_substs G qs ps Hlen1)
+        (secclab_substs G' qs ps' Hlen2)
+
+lemma helper7489376 {fst snd ps qs Hlen} {rs: List Pid}:
+    (fst, snd) in (rs.zip (pids_substs rs ps qs Hlen))
+    -> (fst in rs) /\ snd = pid_substs fst ps qs Hlen
+\end{verbatim}
+\end{samepage}
+\pagebreak
+We can now look at the body of the proof:
+\begin{samepage}
+\begin{verbatim}
+    intro Hdis1 Hdis2
+    have Hdis3: Disjoint ss.toFinset
+        (pids_substs rs ps qs Hlen1).toFinset
+            := disjoint_of_substs2 Hdis1 Hdis2
+    apply helper23718 _ _ Hdis1 Hdis3
+    rw [List.forall_iff_forall_mem]
+    intro a Ha
+    cases a
+    case mk fst snd =>
+    simp
+    rw [sec_substs_of_pid_substs]
+    have A1 := helper7489376 Ha
+    rw [And.right A1]
+\end{verbatim}
+\end{samepage}
+And see that basically the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning which proves the equation in every possible case.
 \begin{appendices}
 \chapter{Proofs on Syntactic Transformations}
 \label{appdix:A}
