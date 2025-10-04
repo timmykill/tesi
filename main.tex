@@ -472,7 +472,85 @@ The choice between these two definitions ultimately depends on the attacker mode
 Termination-insensitive non-interference is weaker but simplifies analysis and enforcement by eliminating the need to handle issues related to termination or infinite loops, which is particularly important because non-interference cannot be enforced in a sound and precise manner in the presence of these behaviors\cite{ngo2018impossibility}.
 
 \section{Proof Assistants}
-\textbf{TODO: fare dopo chap su lean}
+\label{background:proofassistants}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{What is a proof assistant and why use one?}
+A \emph{proof assistant} is an interactive system for developing machine-checked mathematics.
+Under the Curry--Howard correspondence, propositions are types and proofs are programs inhabiting those types.
+A mechanized development goes beyond pencil-and-paper proofs by enforcing \emph{totality} (no partial functions), explicit hypotheses, and fully spelled-out induction principles.%
+\footnote{In this thesis, ``mechanized'' means that all the stated lemmas and theorems referenced in Chapter~\ref{chap:lean mechanization} have corresponding Lean artifacts that type-check.}
+These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle.
+
+\subsection{Lean in a nutshell}
+\paragraph{Types, terms, and equality.}
+Lean 4 is a dependent type theory with a distinguished universe \texttt{Prop} for logical propositions.
+We distinguish \emph{definitional equality} (judgmental, i.e.\ equal by computation) from \emph{propositional equality} (an inhabitant of \texttt{a = b}).
+Most rewriting in this work uses propositional equality via standard congruence and rewriting principles.
+
+\paragraph{Inductive types and inductive relations.}
+Abstract syntax trees (ASTs), typing rules, and small-step semantics are represented as \emph{inductive} declarations.
+Crucially, judgments like typing and transition relations are encoded as \emph{inductive predicates} (relations) whose constructors correspond one-to-one with the inference rules in this manuscript.
+Induction over derivations (``rule induction'') is the default proof method for meta-properties.
+
+\paragraph{Pattern matching, recursion, and mutuality.}
+Lean supports structural recursion and induction; when definitions depend on each other (e.g.\ instructions and choreographies), we use \emph{mutual} recursion/induction.
+This mirrors the mutual inductive structure of the language and will reappear whenever we prove properties by simultaneous induction on related syntactic categories.
+
+\paragraph{Type classes and algebraic structure.}
+Algebraic structure (orders, joins, bottom) is provided via \emph{type classes}.
+For the security lattice \(\MCL\) we rely on instances such as partial orders and (join-)semilattices with a least element~\((\bot)\).
+Type-class resolution lets us write generic lemmas that work for any instance of these interfaces (e.g.\ monotonicity of joins, distributivity properties actually used in typing).
+
+\paragraph{Finite collections and decidability.}
+We use \texttt{Finset} to represent finite sets (e.g.\ sets of process names).
+Membership and set operations are computable; many lemmas require decidable equality on elements.
+This setup simplifies counting arguments, case splits over finite supports, and proofs that manipulate environments whose keys form finite domains.
+
+\subsection{Representing the object language}
+\paragraph{Abstract syntax and substitution.}
+Processes, variables, and choreographies are represented by first-order inductive types.
+Substitution of process names and variables is implemented by total functions following the paper definitions; key algebraic laws (identity, composition, freshness side-conditions) are established once and reused.
+
+\paragraph{Judgments as inductive rules.}
+Typing judgments for expressions, instructions, and choreographies, as well as the small-step transition relation, are given as inductive predicates.
+Each paper rule corresponds to exactly one constructor; this bijection enables straightforward rule inversion and case splits in proofs.
+
+\paragraph{Contexts and environments.}
+Type environments (\(\Gamma\)), security contexts (\(\Delta\)), and procedure contexts are represented as finite maps over the appropriate key types.
+Well-formedness predicates ensure domains agree where needed (e.g.\ a procedure’s formal parameters match the arity in the context) and provide the invariants required by weakening and substitution lemmas.
+
+\subsection{Proof patterns used in this thesis}
+\paragraph{Rule induction and inversion.}
+Proofs of progress/preservation-like lemmas and of simulation properties use induction on the last rule used in a derivation.
+\emph{Inversion} principles (derived from the constructors) extract the hypotheses that must have held to build a judgment, matching the paper’s meta-theory.
+
+\paragraph{Weakening, substitution, renaming.}
+We factor structural properties as standalone lemmas (closure under weakening, admissible substitution, and renaming), each proved by mutual induction on judgments.
+These lemmas are then imported wherever preservation-like arguments need to reorganize contexts.
+
+\paragraph{Rewriting and automation.}
+Congruence lemmas and equational laws (for substitution, environment lookup/update, and lattice operations on \(\MCL\)) enable concise proofs.
+Automation is intentionally lightweight: the development favors explicit case analysis and small rewriting steps; when mentioned, ``\emph{simplifies}’’ refers to a sequence of standard rewrites that discharge definitional equalities and canonical set/map facts.
+
+\subsection{How to read the mechanization in Chapter~\ref{chap:lean mechanization}}
+We follow a consistent “dictionary’’ between mathematics and Lean identifiers.
+In particular, we reuse the naming conventions summarized at the start of Chapter~\ref{chap:lean mechanization} (\(\MCL \leftrightarrow \texttt{L}\), \(\Delta \leftrightarrow \texttt{D}\), \(\Gamma \leftrightarrow \texttt{G}\), and \(\vec{p} \leftrightarrow \texttt{ps}\)).
+Code listings appear only where they clarify a definition or a proof pattern; each such listing corresponds to a definition or rule already stated in mathematical form in the surrounding text.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Enforcement of the Non-Interference Property in Choreographies}
 The main contribution of this thesis is the development of a mechanism to check the compliance of a choreography against an user specified flow policy.
