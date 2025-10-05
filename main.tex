@@ -481,10 +481,17 @@ Termination-insensitive non-interference is weaker but simplifies analysis and e
 
 \subsection{What is a proof assistant and why use one?}
 A \emph{proof assistant} is an interactive system for developing machine-checked mathematics.
-Under the Curry--Howard correspondence, propositions are types and proofs are programs inhabiting those types.
-A mechanized development goes beyond pencil-and-paper proofs by enforcing \emph{totality} (no partial functions), explicit hypotheses, and fully spelled-out induction principles.%
-\footnote{In this thesis, ``mechanized'' means that all the stated lemmas and theorems referenced in Chapter~\ref{chap:lean mechanization} have corresponding Lean artifacts that type-check.}
+Mechanized\footnote{In this thesis, ``mechanized'' means that all the stated theorems have corresponding Lean artifacts that type-check.} proofs provide stronger assurance by forcing full formalization and having a small trusted checker verify every inference, catching subtle gaps and mistakes that pen-and-paper often miss. They also yield reproducible, maintainable, and scalable artifacts (proof scripts) that anyone can re-run, audit, and extend with automation, making it feasible to verify large, evolving systems.\cite{harrison2014history}
 These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle.
+\subsection{Theoretical justification for proof assistants}
+Under the Curry-Howard correspondence, propositions are types and proofs are programs inhabiting those types.\cite{howard1980formulae}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Lean in a nutshell}
 \paragraph{Types, terms, and equality.}
@@ -536,11 +543,6 @@ These lemmas are then imported wherever preservation-like arguments need to reor
 \paragraph{Rewriting and automation.}
 Congruence lemmas and equational laws (for substitution, environment lookup/update, and lattice operations on \(\MCL\)) enable concise proofs.
 Automation is intentionally lightweight: the development favors explicit case analysis and small rewriting steps; when mentioned, ``\emph{simplifies}’’ refers to a sequence of standard rewrites that discharge definitional equalities and canonical set/map facts.
-
-\subsection{How to read the mechanization in Chapter~\ref{chap:lean mechanization}}
-We follow a consistent “dictionary’’ between mathematics and Lean identifiers.
-In particular, we reuse the naming conventions summarized at the start of Chapter~\ref{chap:lean mechanization} (\(\MCL \leftrightarrow \texttt{L}\), \(\Delta \leftrightarrow \texttt{D}\), \(\Gamma \leftrightarrow \texttt{G}\), and \(\vec{p} \leftrightarrow \texttt{ps}\)).
-Code listings appear only where they clarify a definition or a proof pattern; each such listing corresponds to a definition or rule already stated in mathematical form in the surrounding text.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2036,6 +2038,7 @@ The algorithm we defined is very similar to type-inference\cite{pierce2002types}
 We do not address these topics in this thesis because of the limited time available.
 
 \chapter{Lean mechanization}
+\label{chap:lean}
 \section{Naming Conventions}
 In the following, a few naming conventions are different and should be considered:
 \begin{align*}
