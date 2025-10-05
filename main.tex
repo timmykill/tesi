@@ -37,7 +37,6 @@
   }
 }
 
-
 \newcommand{\rom}[1]{\uppercase\expandafter{\romannumeral #1\relax}}
 \newcommand{\metaDeff}{\mathrel{\mathop{::}}=}
 \newcommand{\metaDef}{\mathrel{\mathop:}=}
@@ -121,7 +120,6 @@
 \thispagestyle{empty}
 
 \newpage~\newpage
-
 
 \pagenumbering{arabic}
 \raggedbottom
@@ -2042,14 +2040,15 @@ We do not address these topics in this thesis because of the limited time availa
 In the following, a few naming conventions are different and should be considered:
 \begin{align*}
 \texttt{L} &\triangleq \MCL &\texttt{ps} &\triangleq \vec{p}\\
-\texttt{D} &\triangleq \Delta & \texttt{G} &\triangleq \Gamma
+\texttt{D} &\triangleq \Delta & \texttt{G} &\triangleq \Gamma\\
+\texttt{BrChor} &\triangleq \textbf{[Chor]}
 \end{align*}
 
 \section{Imported Definitions and Results}
 \label{lean:imports}
 \subsection{Encoding of $\MCL$}
-\emph{Mathlib 4}\cite{mathlib4} was used as library in the project, so we could take advantage of the previous effort of mechanization of established math results.\\
-The biggest contribution taken from the library was the \texttt{Mathlib.Order.Lattice} module, which was used to encode $\MCL$ by defining it as a \emph{type variable} which implements the \texttt{Lattice}, \texttt{DecidableLE} and \texttt{Bot} \emph{type classes}.
+\emph{Mathlib 4}\cite{mathlib4} was used as library in the project. This was done so that we could take advantage of the already mechanized math results.\\
+The biggest contribution taken from the library is the \texttt{Mathlib.Order.Lattice} module, which was used to encode $\MCL$ by defining it as a \emph{type variable} which implements the \texttt{Lattice}, \texttt{DecidableLE} and \texttt{Bot} \emph{type classes}.
 \subsection{Reference choreographies}
 Ongoing research is being done by Xueying Qin and Fabrizio Montesi at SDU to mechanize the language defined in \ref{background:choreographies}.
 My work builds on theirs, importing the needed definitions and results. The main imported constructs are the following: procedure context implementation, syntax and semantics for reference choreographies.
@@ -2074,18 +2073,16 @@ def SecFunCtx :=
 \end{verbatim}
 \end{samepage}
 
-\item \texttt{Syntax.lean} This file contains the definition of the instrumented semantics, encoded as an inductive type and all related lemmas and definition (for example substitution, low equality).
+\item \texttt{Syntax.lean} This file contains the definition of the instrumented syntax, encoded as an inductive type, and all related lemmas and definition (for example \emph{substitution}, \emph{low equality}).
 
 \item \texttt{Semantics.lean} This file contains both the natural semantics as defined in \ref{nat_sem} and the operational semantics for instrumented choreographies. Both relations are defined as inductive types. Let us see the signatures for them:
 \begin{samepage}
 \begin{verbatim}
 inductive Chor.natsem {sig: EvalSig}:
-    CConf -> List TransitionLabel -> CStore -> Prop where
-    ...
+    CConf -> List TransitionLabel -> CStore -> Prop
 
 inductive BrChor.lto {G: @SecCLab L}:
-    BrConf -> BrConf -> Prop where
-    ...
+    BrConf -> BrConf -> Prop
 \end{verbatim}
 \end{samepage}
 \item \texttt{Typing.lean} This file contains the typing relation as defined in \ref{type:formal} and all the helper lemmas used in the proofs. The relation is encoded as an mutually inductive type, with the following signature:
@@ -2093,16 +2090,14 @@ inductive BrChor.lto {G: @SecCLab L}:
 \begin{verbatim}
 mutual
 inductive tj_i {D: @SecFunCtx L} {G: @SecCLab L}:
-    L -> Instruction -> Prop where
-    ...
+    L -> Instruction -> Prop
 
 inductive tj_c {D: @SecFunCtx L} {G: @SecCLab L}:
-    L -> Choreography -> Prop where
-    ...
+    L -> Choreography -> Prop
 end
 \end{verbatim}
 \end{samepage}
-\item \texttt{LowerLiftStx.lean} In this file are defined and mechanized all the lowering/lifting functions which this document treated at a more abstract level. A great deal of helper and inversion lemmas are needed to make the definitions usable in the proofs. To cite some numbers, the file is composed of 1389 \emph{lines of code} for 8 lowering/lifting functions. Let us see a few cases of the lifting function for choreography, to see how the issue of $\wr \cdot \wr$ was dealt with:
+\item \texttt{LowerLiftStx.lean} In this file are defined and mechanized all the lowering/lifting functions which this document treated at a more abstract level. A great deal of helper and inversion lemmas are needed to make the definitions usable in the proofs. To cite some numbers, the file is composed of 1389 lines of code for 8 lowering/lifting functions. Let us see a few cases of the lifting function for choreography, to see how the issue of $\wr \cdot \wr$ was dealt with:
 \begin{samepage}
 \begin{verbatim}
 mutual
@@ -2140,7 +2135,7 @@ def no_rtcall_c (c: Choreography): Prop := match c with
 end
 \end{verbatim}
 \end{samepage}
-\item \texttt{Completeness.lean} The main theorem defined in this file is \ref{aux:compl}. I was not able to finish the proof in lean for time related reasons. This is the reason why the completeness proof was described in deeper detail in this document.
+\item \texttt{Completeness.lean} The main theorem defined in this file is \ref{aux:compl}. I was not able to finish the proof in lean for time related reasons. Since the completeness proof is not mechanized, it was described in deeper detail in this document.
 \item \texttt{Preservation.lean} The main theorem proved in this file is \ref{aux:pres}. In the same file are defined and proved helper lemmas (for example \emph{pc subsumption} and typing for instrumented local expressions).
 \item \texttt{Unwinding.lean} The main theorem proved in this file is \ref{aux:unw}. In the same file are defined and proved helper lemmas (for example the \emph{high step lemma}\cite{myers2011proving} and helper lemmas for low equality of instrumented stores).
 \item \texttt{NonInt.lean} This file contains the main proof, corresponding to \ref{main:def}.
@@ -2149,9 +2144,9 @@ All the other files of the project are imported in this one to be able to define
 
 \section{Coverage of the Mechanization}
 Many results described in this document have been mechanized and are present in the lean code, but not all.
-Two main results are simply admitted and were only proved by pen and paper: \emph{completeness of the reference semantics with respect to the instrumented semantics} and \emph{construction of $\Delta$}.\\
-These two sections were not represented in lean for time constraints: any non-trivial lemma requires me to have first a pen and paper presentation, this is because it is very easy to concentrate on the syntactical aspects of the proof and to lose sight of the overall strategy.
-Moreover, once the proof strategy is clear, the process of encoding it in lean can be very time consuming, and it is sometimes difficult to correctly predict which proof steps are going to be the most challenging. Sometimes half a page paper presentations become hundreds and hundreds of line of code.
+Two main results are admitted and are proved only by pen and paper: \emph{completeness of the reference semantics with respect to the instrumented semantics} and \emph{construction of $\Delta$}.\\
+These two sections were not represented in lean for time constraints: any non-trivial lemma requires me to have first a pen and paper presentation. This is because while writing lean code it is very easy to concentrate on the syntactical aspects of the proof and to lose sight of the overall strategy.
+Moreover, once the proof strategy is clear, the process of encoding it in lean can be very time consuming, and it is sometimes difficult to correctly predict which proof steps are going to be the most challenging. Sometimes half a page paper presentations become hundreds and hundreds of lines of code.
 
 \section{An Illustrative Example}
 We will now show the lean implementation of the following lemma, used in section \ref{aux:pres_lemma1}. Let us remind ourselves the lemma statement:
@@ -2211,54 +2206,55 @@ def secclab_substs (G: @SecCLab L) (p q: List Pid)
 Where \texttt{secclab\_subst} is the function dealing with scalar substitution, defined as follows:
 \begin{samepage}
 \begin{verbatim}
-def secclab_subst (G: @SecCLab L) (p q: Pid): @SecCLab L
-    := lambda r => if p = r then G q else G r
+def secclab_subst (G: @SecCLab L) (p q: Pid): @SecCLab L :=
+    lambda r => if p = r then G q else G r
 \end{verbatim}
 \end{samepage}
 
 \subsubsection{Proof}
-For the rest of the chapter, there is an important note to make: my proof style in lean can be considered mostly \emph{backward chaining}\cite{al2015comparison}, that is, I tend to manipulate the goal more than the available hypothesis.
+For the rest of the chapter there is an important note to make: my proof style in lean can be considered mostly \emph{backward chaining}\cite{al2015comparison}, that is, I tend to manipulate the goal more than the hypothesis.
 Let us now see the proof body in lean, omitting the uninteresting induction cases.
 \begin{samepage}
 \begin{verbatim}
-        intro Hfresh H1
-        induction H1
-        case tass l' Htjeval Hsub =>
-            rw [BrChor.substitutions.inversion_ass]
-            apply tj_bc.tass (l' := l')
-            case a => simp_all [sec_substs_of_pid_substs]
-            case a => simp_all [sec_substs_of_pid_substs]
-        case tcond Heval _ _ IH1 IH2 =>
-            rw [BrChor.substitutions.inversion_cond]
-            rw [sec_substs_of_pid_substs (G := G)] at Heval
-            apply tj_bc.tcond Heval IH1 IH2
-        case tcall G' pc x ps' qs' Hlen Hg Hqs Hgam =>
-            rw [BrChor.substitutions.inversion_call]
-            dsimp [fresh_functx] at Hfresh
-            apply tj_bc.tcall Hg Hqs
-            have Hdis1 := Disjoint.symm (Hfresh pc x qs' ps'.toFinset Hqs)
-            have Hdis3 := Disjoint.symm (Hfresh pc x qs' qs.toFinset Hqs)
-            apply gam_res_eq_trans
-            apply (gam_res_eq_symm (gamsubsts_helper Hdis1 Hdis3))
-            apply Hlen
-            apply Eq.trans Hlen pids_substs_length
-            apply Hgam
+    intro Hfresh H1
+    induction H1
+    case tass l' Htjeval Hsub =>
+        rw [BrChor.substitutions.inversion_ass]
+        apply tj_bc.tass (l' := l')
+        case a => simp_all [sec_substs_of_pid_substs]
+        case a => simp_all [sec_substs_of_pid_substs]
+    case tcond Heval _ _ IH1 IH2 =>
+        rw [BrChor.substitutions.inversion_cond]
+        rw [sec_substs_of_pid_substs (G := G)] at Heval
+        apply tj_bc.tcond Heval IH1 IH2
+    case tcall G' pc x ps' qs' Hlen Hg Hqs Hgam =>
+        rw [BrChor.substitutions.inversion_call]
+        dsimp [fresh_functx] at Hfresh
+        apply tj_bc.tcall Hg Hqs
+        have Hdis1 := Disjoint.symm
+            (Hfresh pc x qs' ps'.toFinset Hqs)
+        have Hdis3 := Disjoint.symm (Hfresh pc x qs' qs.toFinset Hqs)
+        apply gam_res_eq_trans
+        apply (gam_res_eq_symm (gamsubsts_helper Hdis1 Hdis3))
+        apply Hlen
+        apply Eq.trans Hlen pids_substs_length
+        apply Hgam
 \end{verbatim}
 \end{samepage}
 Let us unpack what happens in this code snippet: The proof follows by induction on the typing derivation \texttt{tj\_bc}. We will explain the cases for \emph{assignment}, \emph{conditionals} and \emph{procedure calls}.
 \begin{itemize}
-\item \emph{assignment}: The inductive cases gives us hypothesis for the typing of the expression and on the order relation between $\ell$ and $\Gamma~p~x$.\\
+\item \emph{assignment}: The inductive cases gives us hypothesis for the typing of the expression (\texttt{Htjeval}) and on the order relation between $\ell$ and $\Gamma~p~x$ (\texttt{Hsub}).\\
 The first step rewrites the goal from:\\
 \texttt{tj\_bc D G pc ((BrChor.ass p e x).substitutions ps qs Hlen)}\\
 to \texttt{tj\_bc D G pc (BrChor.ass (pid\_substs p ps qs Hlen) e x)}.
 Thus enabling us to use the typing rule for assignments.
-The two assumptions of the typing rule are discharged by the proof search mechanism of lean, using as helper lemma the following (which is used on \texttt{Heval} to make it compatible with the needed assumption):
+The two assumptions of the typing rule are discharged by the proof search mechanism of lean, using the following helper lemma (which is used on \texttt{Heval} to make it compatible with the needed assumption):
 \begin{verbatim}
 lemma sec_substs_of_pid_substs {G: @SecCLab L}
     {r: Pid} {ps qs: List Pid} {Hlen}:
     (secclab_substs G ps qs Hlen) r = G (pid_substs r ps qs Hlen)
 \end{verbatim}
-\item \emph{conditional}: The inductive case gives us hypothesis for the typing of the expression, and two inductive hypothesis for the two branches.
+\item \emph{conditional}: The inductive case gives us hypothesis for the typing of the expression (\texttt{Heval}), and two inductive hypothesis for the two branches (\texttt{IH1,  IH2}).
 The typing of the expression is dealt exactly as in the previous case, but to be able to use the typing rule on the goal we need to apply the inductive hypothesis.
 \item \emph{procedure call}: We first, as we did in the previous inductive cases, invert the process substitution to be able to use the call typing rule. The function lookup part of the typing derivation remains the same (which finds $\Gamma', \vec{r}$), thus it remains to prove the following:
 $$
@@ -2299,7 +2295,7 @@ To understand it, we need to detail two more definitions:
 def gam_res_eq (ps: Finset Pid) (g1 g2: @SecCLab L): Prop :=
     forall (p: Pid), p in ps -> g1 p = g2 p
 
-def Pid.substitution (p : Pid) (r : Pid) (s : Pid) : Pid :=
+def Pid.substitution (p r s: Pid): Pid :=
   if p = r then s else p
 
 def pid_substs (r: Pid) (ps qs: List Pid)
@@ -2316,7 +2312,8 @@ def pids_substs (rs ps qs: List Pid)
     | [] => []
 \end{verbatim}
 \end{samepage}
-Which are considered self-explanatory. We also describe two helper lemmas:
+Which are considered self-explanatory.\\
+We also describe two helper lemmas:
 \begin{samepage}
 \begin{verbatim}
 lemma helper23718 {G G': @SecCLab L} {qs ps ps': List Pid}
@@ -2328,14 +2325,19 @@ lemma helper23718 {G G': @SecCLab L} {qs ps ps': List Pid}
                    (List.zip ps ps')
     -> gam_res_eq qs.toFinset (secclab_substs G qs ps Hlen1)
         (secclab_substs G' qs ps' Hlen2)
-
+\end{verbatim}
+\end{samepage}
+This lemma says that, under correct disjointness conditions, parallel substitutions of security labels are determined purely by the \emph{positionwise} agreement of the labels being plugged in.
+\begin{samepage}
+\begin{verbatim}
 lemma helper7489376 {fst snd ps qs Hlen} {rs: List Pid}:
     (fst, snd) in (rs.zip (pids_substs rs ps qs Hlen))
     -> (fst in rs) /\ snd = pid_substs fst ps qs Hlen
 \end{verbatim}
 \end{samepage}
-\pagebreak
-We can now look at the body of the proof:
+This lemma captures the intended \emph{position-preserving} view of substitutions on pid lists.
+
+Now that we have all the necessary background, we can look at the body of the proof:
 \begin{samepage}
 \begin{verbatim}
     intro Hdis1 Hdis2
@@ -2353,7 +2355,8 @@ We can now look at the body of the proof:
     rw [And.right A1]
 \end{verbatim}
 \end{samepage}
-And see that basically the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning which proves the equation in every possible case.
+And see that basically the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning which proves the equation in every possible case. 
+
 \begin{appendices}
 \chapter{Proofs on Syntactic Transformations}
 \label{appdix:A}
