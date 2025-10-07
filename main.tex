@@ -103,9 +103,9 @@
 \topmargin=6.5cm
 \begin{flushright}
 \emph{
-\LARGE{Abuse of overloading}\\\vspace{1mm}
-\LARGE{leads to obscurity}\\\vspace{3mm} 
-\LARGE{G.Kahn - 1987} 
+\large{The method of `postulating' what we want has many advantages; }\\\vspace{1mm}
+\large{they are the same as the advantages of theft over honest toil.}\\\vspace{3mm} 
+\large{Russel - 1919} 
 }
 \end{flushright}
 
@@ -469,22 +469,26 @@ In this setting, divergences influenced by secret data are allowed.
 The choice between these two definitions ultimately depends on the attacker model assumed. Termination-sensitive non-interference provides stronger guarantees and is well-suited for high-assurance scenarios in which termination behavior is observable by the attacker.
 Termination-insensitive non-interference is weaker but simplifies analysis and enforcement by eliminating the need to handle issues related to termination or infinite loops, which is particularly important because non-interference cannot be enforced in a sound and precise manner in the presence of these behaviors\cite{ngo2018impossibility}.
 
-\section{Proof Assistants}
+\section{Lean Proof Assistant}
 \label{background:proofassistants}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{What is a proof assistant and why use one?}
 A \emph{proof assistant} is an interactive system for developing machine-checked mathematics.
-Mechanized\footnote{In this thesis, ``mechanized'' means that all the stated theorems have corresponding Lean artifacts that type-check.} proofs provide stronger assurance by forcing full formalization and having a small trusted checker verify every inference, catching subtle gaps and mistakes that pen-and-paper often miss. They also yield reproducible, maintainable, and scalable artifacts (proof scripts) that anyone can re-run, audit, and extend with automation, making it feasible to verify large, evolving systems.\cite{harrison2014history}
-These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle.
-\subsection{Theoretical justification for proof assistants}
-Under the Curry-Howard correspondence, propositions are types and proofs are programs inhabiting those types.\cite{howard1980formulae}
+Mechanized proofs\footnote{In this thesis, ``mechanized'' means that all the stated theorems have corresponding Lean artifacts that type-check.} provide stronger assurance by forcing full formalization and having a small trusted checker verify every inference, catching subtle gaps and mistakes that pen-and-paper often miss. They also yield reproducible, maintainable, and scalable artifacts (proof scripts) that anyone can re-run, audit, and extend with automation, making it feasible to verify large, evolving systems.\cite{harrison2014history}
+These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle.\cite{aydemir2005mechanized}
+
+
+
+\subsection{Underlying theory}
+Lean is based on a version of dependent type theory known as the Calculus of Constructions\cite{coquand1986calculus}, with a countable hierarchy of non-cumulative universes and inductive types\cite{avigad2021theorem}. Dependent type theory is a powerful and expressive language allowing you to express complex mathematical assertions.\\
+Lean employs a cumulative hierarchy $Type_0 \subset Type_1 \subset \cdots$ (universe polymorphism) to avoid paradoxes while retaining expressivity\cite{martin1984intuitionistic}.\\
+
+Under the Curry-Howard correspondence, propositions are types and proofs are programs inhabiting those types\cite{howard1980formulae}.\\
+Using the Lean programming language we are able to write proof-terms that inhabit arbitrary propositions by type-checking. An inhabited proposition is considered as true. This view of the Curry-Howard correspondence gives us \emph{proof irrelevance}, that is two proof-terms are considered equal if they construct the same type.
+
+Proofs are usually written by the user in an higher-level, \emph{tactics} language and then compiled to proof-terms. 
+As we said, we can view a term as a representation of a construction or mathematical proof; \emph{tactics} are commands, or instructions, that describe how to build such a term.
+Soundness of the proof ultimately rests on a small \emph{trusted kernel}: a compact type-checker that implements Lean's dependent type theory and accepts only well-typed declarations up to definitional equality.\cite{de2015lean} The compilation step from tactics to  \textbf{TODO: non proprio corretta, vedi come scrivere meglio}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -517,32 +521,6 @@ Type-class resolution lets us write generic lemmas that work for any instance of
 We use \texttt{Finset} to represent finite sets (e.g.\ sets of process names).
 Membership and set operations are computable; many lemmas require decidable equality on elements.
 This setup simplifies counting arguments, case splits over finite supports, and proofs that manipulate environments whose keys form finite domains.
-
-\subsection{Representing the object language}
-\paragraph{Abstract syntax and substitution.}
-Processes, variables, and choreographies are represented by first-order inductive types.
-Substitution of process names and variables is implemented by total functions following the paper definitions; key algebraic laws (identity, composition, freshness side-conditions) are established once and reused.
-
-\paragraph{Judgments as inductive rules.}
-Typing judgments for expressions, instructions, and choreographies, as well as the small-step transition relation, are given as inductive predicates.
-Each paper rule corresponds to exactly one constructor; this bijection enables straightforward rule inversion and case splits in proofs.
-
-\paragraph{Contexts and environments.}
-Type environments (\(\Gamma\)), security contexts (\(\Delta\)), and procedure contexts are represented as finite maps over the appropriate key types.
-Well-formedness predicates ensure domains agree where needed (e.g.\ a procedure’s formal parameters match the arity in the context) and provide the invariants required by weakening and substitution lemmas.
-
-\subsection{Proof patterns used in this thesis}
-\paragraph{Rule induction and inversion.}
-Proofs of progress/preservation-like lemmas and of simulation properties use induction on the last rule used in a derivation.
-\emph{Inversion} principles (derived from the constructors) extract the hypotheses that must have held to build a judgment, matching the paper’s meta-theory.
-
-\paragraph{Weakening, substitution, renaming.}
-We factor structural properties as standalone lemmas (closure under weakening, admissible substitution, and renaming), each proved by mutual induction on judgments.
-These lemmas are then imported wherever preservation-like arguments need to reorganize contexts.
-
-\paragraph{Rewriting and automation.}
-Congruence lemmas and equational laws (for substitution, environment lookup/update, and lattice operations on \(\MCL\)) enable concise proofs.
-Automation is intentionally lightweight: the development favors explicit case analysis and small rewriting steps; when mentioned, ``\emph{simplifies}’’ refers to a sequence of standard rewrites that discharge definitional equalities and canonical set/map facts.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
