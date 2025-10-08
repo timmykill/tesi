@@ -112,8 +112,6 @@
 \newpage~\newpage
 
 \pagenumbering{gobble}
-\chapter*{Abstract}
-\textbf{TODO: fare alla fine}
 \topmargin=-1cm
 
 \tableofcontents
@@ -126,7 +124,60 @@
 \chapter{Introduction} \label{chap:intro}
 \pagestyle{plain}
 \setcounter{page}{1}
-\textbf{TODO: fare alla fine}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\noindent
+Distributed software can be seen as a set of communicating components that jointly implement protocols such as authenticating a user, booking a ticket, or reconciling a payment. At this scale, two concerns have to be considered: \emph{correct coordination} among participants and \emph{confidentiality} of the data they manipulate. \emph{Choreographic languages} address the first concern by describing protocols from a global point of view, from which compliant local behaviours can be derived\cite{montesi2023introduction}. This work tackles the second concern: ensuring, by construction, that a choreography does not leak secret information to public observers.
+
+Information flow security offers a principled way to reason about confidentiality.
+Following Denning's lattice model of security classes\cite{denning1976lattice}, to every piece of data is assigned a security class ordered by a relation $\sqsubseteq$ over a security lattice $\MCL$.
+
+We focus on a property named \emph{non-interference}\cite{goguen1982security}: intuitively, changes to data at a chosen observation level \(low \in \MCL\) must not affect what an attacker at level \(low\) can observe. In conventional languages, non-interference is often enforced statically by type systems that rule out both \emph{explicit flows} (e.g.\ assigning a secret directly to a public variable) and \emph{implicit flows} (e.g.\ branching on a secret and thereby revealing information through control flow) \cite{volpano1996sound}.
+
+This thesis develops a \emph{mechanized, type-based enforcement of non-interference} for a core choreographic language with procedures, message-passing, selections, assignments, and conditionals. The enforcement is \emph{policy-parametric}: given a user-specified lattice of security classes and an observation level \(low\), the type system rejects any choreography in which high-security data could influence \(low\)-observable behaviour. The typing judgement has the form
+\[
+  \Delta \;;\; \Gamma \;;\; pc \;\vdash\; C,
+\]
+where $\Gamma$ assigns security classes to program variables, $pc \in \MCL$ tracks the \emph{current control level}, and $\Delta$ summarizes how procedures may be called safely at different control levels. Typing is compositional on the structure of choreographies.
+
+Two technical devices are key. First, we adopt a standard \emph{program-counter discipline}: the control level $pc$ records the influence of secrets on the current point of execution; once raised (e.g.\ by branching on a secret), it restricts subsequent low-observable actions until control returns to a lower level. Second, to support modular verification in the presence of recursive procedures, we introduce a \emph{procedure context} $\Delta$ mapping each procedure and control level to a set of admissible variable typings. Intuitively, $\Delta$ captures the summary of how a procedure may be used safely. We show how to \emph{construct} such a $\Delta$ from the procedure definitions by generating and solving constraints, in the spirit of type reconstruction\cite{pierce2002types}.
+
+The enforcement target is a standard, small-step reference semantics for choreographies. Following common practice in the information-flow literature \cite{volpano1996sound}, we consider a \emph{termination-insensitive} attacker: divergence itself is not deemed an observation. To state the main theorem conveniently, we pair the reference semantics with a natural (big-step) judgement that tracks an entire execution. The main result of the thesis is:
+
+\begin{quote}
+\emph{Soundness (Termination-Insensitive Non-Interference).} If $\Delta;\Gamma;\bot \vdash C$ and two initial stores are $low$-equivalent w.r.t.\ $\Gamma$, then the $low$-observable outcomes of running $C$ from those stores are indistinguishable to an attacker at level \(low\).
+\end{quote}
+
+\noindent
+Soundness is proved by a standard \emph{progress and preservation}\cite{pierce2002types} argument tailored to choreographies: well-typedness ensures that
+\begin{itemize}
+\item explicit flows respect the policy encoded by $\Gamma$.
+\item implicit flows are tracked so that no $low$-observable action depends on high secrets.
+\item procedure calls are safe thanks to the invariants captured by $\Delta$.
+\end{itemize}
+
+The main theorem is \emph{mechanized} in the Lean proof assistant\cite{de2015lean}, building on an existing Lean formalization of choreographies and standard libraries for order-theoretic structures. Mechanization provides machine-checked assurance that the informal intuitions above are realized precisely.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item A \emph{policy-parametric} information-flow type system for choreographies, tracking both data and control via a program-counter discipline and supporting recursion through a procedure context $\Delta$.
+  \item A \emph{soundness theorem} stating that well-typed choreographies satisfy termination-insensitive non-interference with respect to the reference semantics.
+  \item A \emph{context reconstruction} method that computes $\Delta$ from procedure definitions by constraint generation and solving, together with proofs of its well-formedness properties.
+\item A \emph{Lean mechanization} of the language, the type system, and the proofs, integrating with prior formalizations and Mathlib's order-theoretic infrastructure\cite{mathlib4}.
+\end{itemize}
+
+\paragraph{Structure of the thesis.}
+Chapter \ref{chap:background} introduces choreographies, recalls the essentials of lattice-based information-flow control and non-interference, and summarizes the Lean features used in the mechanization.
+Chapter \ref{chap:type-system} presents the language and the type system, motivating each typing rule on representative constructs.
+Chapter \ref{chap:soundness-proof} states and proves termination-insensitive non-interference for well-typed programs, using a natural-semantics presentation to express the attacker's observations.
+Chapter \ref{chap:delta} develops the construction of the procedure context $\Delta$ and establish its required properties.
+Chapter \ref{chap:lean} documents the Lean mechanization, its organization, and the connections to the pen and paper development.
+The appendices collect auxiliary syntactic lemmas used throughout the proofs.
 
 \chapter{Background} \label{chap:background}
 \section{Choreographies}
@@ -408,6 +459,7 @@ When side channels matter, they can be brought into scope by enriching the seman
 observables and adopting timing-/step-sensitive definitions\cite{197207}.
 
 \section{Non-Interference}
+\label{background:noninterference}
 Denning's work\cite{denning1976lattice} is primarily concerned with the design and specification of information flow policies rather than their enforcement in concrete programming languages. Notably, the lattice model does not define how to formally relate a program's execution semantics to the flow policy. While the model is sound as a representation of policy, it operates at an abstract level, and leaves open the question of how to \textit{rigorously} ensure that actual programs respect the intended information flow restrictions.\footnote{In the concluding section of her paper, Denning briefly surveys various enforcement mechanisms, including compiler-based techniques and hardware support. However, this survey is based on intuitive arguments rather than being a formal account.}
 
 The notion of non-interference\cite{goguen1982security} provides a semantic formalization that addresses this limitation. Informally, non-interference requires that variations in high-security (confidential) inputs must not influence low-security (observable) outputs\cite{volpano1996sound}. This condition captures the intuitive idea that secret data should not interfere with what an external observer can learn from the behavior of a program. Importantly, non-interference can be defined with respect to the program's operational semantics, thereby allowing for formal soundness proofs of enforcement mechanisms that guarantee compliance with the security policy\cite{volpano1996sound}.
@@ -473,48 +525,29 @@ Termination-insensitive non-interference is weaker but simplifies analysis and e
 \label{background:proofassistants}
 
 A \emph{proof assistant} is an interactive system for developing machine-checked mathematics.
-Mechanized proofs\footnote{In this thesis, ``mechanized'' means that all the stated theorems have corresponding Lean artifacts that type-check.} provide stronger assurance by forcing full formalization and having a small trusted checker verify every inference, catching subtle gaps and mistakes that pen-and-paper often miss. They also yield reproducible, maintainable, and scalable artifacts (proof scripts) that anyone can re-run, audit, and extend with automation, making it feasible to verify large, evolving systems.\cite{harrison2014history}
-These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle.\cite{aydemir2005mechanized}
-
-
+Mechanized proofs\footnote{In this thesis, ``mechanized'' means that all the stated theorems have corresponding Lean artifacts that type-check.} provide stronger assurance by forcing full formalization and having a small trusted checker verify every inference, catching subtle gaps and mistakes that pen-and-paper often miss. They also yield reproducible, maintainable, and scalable artifacts (proof scripts) that anyone can re-run, audit, and extend with automation, making it feasible to verify large, evolving systems\cite{harrison2014history}.
+These guarantees are particularly useful for meta-theoretic results about programming languages, where small omissions (e.g.\ missing cases in an induction) are common and subtle\cite{aydemir2005mechanized}.
 
 \subsection{Underlying theory}
-Lean is based on a version of dependent type theory known as the Calculus of Constructions\cite{coquand1986calculus}, with a countable hierarchy of non-cumulative universes and inductive types\cite{avigad2021theorem}. Dependent type theory is a powerful and expressive language allowing you to express complex mathematical assertions.\\
-Lean employs a cumulative hierarchy $Type_0 \subset Type_1 \subset \cdots$ (universe polymorphism) to avoid paradoxes while retaining expressivity\cite{martin1984intuitionistic}.\\
+Lean is based on a version of dependent type theory known as the Calculus of Constructions\cite{coquand1986calculus} (\emph{i.e.} CoC), with a countable hierarchy of non-cumulative universes and inductive types\cite{avigad2021theorem}. Dependent type theory is a powerful and expressive language allowing you to express complex mathematical assertions.\\
+Lean employs a cumulative hierarchy $Type_0 \subset Type_1 \subset \cdots$ (universe polymorphism) to avoid paradoxes while retaining expressivity\cite{martin1984intuitionistic}.
+Inductive types are the general well-founded tree types (initial algebras of polynomial functors) that subsume familiar datatypes like naturals, lists, and trees and justify their structural recursion and induction principles\cite{martin1984intuitionistic}.
 
-Under the Curry-Howard correspondence, propositions are types and proofs are programs inhabiting those types\cite{howard1980formulae}.\\
-Using the Lean programming language we are able to write proof-terms that inhabit arbitrary propositions by type-checking. An inhabited proposition is considered as true. This view of the Curry-Howard correspondence gives us \emph{proof irrelevance}, that is two proof-terms are considered equal if they construct the same type.
+Under the Curry-Howard correspondence, propositions are types and proofs are programs inhabiting those types\cite{howard1980formulae}.
+Using the Lean programming language we are able to write proof-terms that inhabit arbitrary propositions, expressed in CoC, by type-checking. An inhabited proposition is considered as true. This view of the Curry-Howard correspondence gives us \emph{proof irrelevance}, that is, two proof-terms are considered equal if they construct the same type.
 
 Proofs are usually written by the user in an higher-level, \emph{tactics} language and then compiled to proof-terms. 
 As we said, we can view a term as a representation of a construction or mathematical proof; \emph{tactics} are commands, or instructions, that describe how to build such a term.
-Soundness of the proof ultimately rests on a small \emph{trusted kernel}: a compact type-checker that implements Lean's dependent type theory and accepts only well-typed declarations up to definitional equality.\cite{de2015lean} The compilation step from tactics to  \textbf{TODO: non proprio corretta, vedi come scrivere meglio}
+Soundness of the proof system ultimately rests on a small \emph{trusted kernel}: a compact type-checker that implements Lean's dependent type theory and accepts only well-typed proof-terms\cite{de2015lean}.
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsection{Lean in a nutshell}
-\paragraph{Types, terms, and equality.}
-Lean 4 is a dependent type theory with a distinguished universe \texttt{Prop} for logical propositions.
-We distinguish \emph{definitional equality} (judgmental, i.e.\ equal by computation) from \emph{propositional equality} (an inhabitant of \texttt{a = b}).
-Most rewriting in this work uses propositional equality via standard congruence and rewriting principles.
-
-\paragraph{Inductive types and inductive relations.}
-Abstract syntax trees (ASTs), typing rules, and small-step semantics are represented as \emph{inductive} declarations.
-Crucially, judgments like typing and transition relations are encoded as \emph{inductive predicates} (relations) whose constructors correspond one-to-one with the inference rules in this manuscript.
-Induction over derivations (``rule induction'') is the default proof method for meta-properties.
-
+\subsection{Lean features used in project}
 \paragraph{Pattern matching, recursion, and mutuality.}
 Lean supports structural recursion and induction; when definitions depend on each other (e.g.\ instructions and choreographies), we use \emph{mutual} recursion/induction.
 This mirrors the mutual inductive structure of the language and will reappear whenever we prove properties by simultaneous induction on related syntactic categories.
 
 \paragraph{Type classes and algebraic structure.}
 Algebraic structure (orders, joins, bottom) is provided via \emph{type classes}.
-For the security lattice \(\MCL\) we rely on instances such as partial orders and (join-)semilattices with a least element~\((\bot)\).
+For the security lattice described in \ref{background:noninterference} we rely on instances such as partial orders and lattice with a least element~\((\bot)\).
 Type-class resolution lets us write generic lemmas that work for any instance of these interfaces (e.g.\ monotonicity of joins, distributivity properties actually used in typing).
 
 \paragraph{Finite collections and decidability.}
@@ -522,15 +555,10 @@ We use \texttt{Finset} to represent finite sets (e.g.\ sets of process names).
 Membership and set operations are computable; many lemmas require decidable equality on elements.
 This setup simplifies counting arguments, case splits over finite supports, and proofs that manipulate environments whose keys form finite domains.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Proof automation.} In Lean, \texttt{simp} is the simplifier tactic: it repeatedly rewrites goals and hypotheses using a curated set of rewrite lemmas. It is best used to normalize terms and discharge straightforward equalities and propositional reasoning. Moreover, \texttt{aesop} is a general-purpose proof search tactic that explores introduction/elimination rules, constructors, and user-declared rules in a goal-directed, saturation-style search\cite{limperg2023aesop}. Both are extensible, so registering domain-specific lemmas/rules can make common arguments essentially automatic.
 
 \chapter{Enforcement of the Non-Interference Property in Choreographies}
+\label{chap:type-system}
 The main contribution of this thesis is the development of a mechanism to check the compliance of a choreography against an user specified flow policy.
 As argued previously, it is advantageous to develop this system statically.
 A static type-system, defined as a type judgment relation, is the natural vehicle to enforce non-interference in choreographies because it turns a semantic security requirement into a syntactic discipline that can be checked algorithmically, integrated into compilation, and compositional on the inductive structure of the program.
@@ -739,6 +767,7 @@ The type-system composes on the instructions making up a choreography.
 \]
 
 \chapter{Soundness of the Type System}
+\label{chap:soundness-proof}
 For the type-system to be interesting, we need to prove its soundness with respect to termination insensitive non-interference against the reference semantics.
 
 \section{Overall Statement and Proof Obligations}
