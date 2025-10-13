@@ -124,14 +124,6 @@
 \chapter{Introduction} \label{chap:intro}
 \pagestyle{plain}
 \setcounter{page}{1}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\noindent
 Distributed software can be seen as a set of communicating components that jointly implement protocols such as authenticating a user, booking a ticket, or reconciling a payment. At this scale, two concerns have to be considered: \emph{correct coordination} among participants and \emph{confidentiality} of the data they manipulate. \emph{Choreographic languages} address the first concern by describing protocols from a global point of view, from which compliant local behaviours can be derived\cite{montesi2023introduction}. This work tackles the second concern: ensuring, by construction, that a choreography does not leak secret information to public observers.
 
 Information flow security offers a principled way to reason about confidentiality.
@@ -145,7 +137,7 @@ This thesis develops a \emph{mechanized, type-based enforcement of non-interfere
 \]
 where $\Gamma$ assigns security classes to program variables, $pc \in \MCL$ tracks the \emph{current control level}, and $\Delta$ summarizes how procedures may be called safely at different control levels. Typing is compositional on the structure of choreographies.
 
-Two technical devices are key. First, we adopt a standard \emph{program-counter discipline}: the control level $pc$ records the influence of secrets on the current point of execution; once raised (e.g.\ by branching on a secret), it restricts subsequent low-observable actions until control returns to a lower level. Second, to support modular verification in the presence of recursive procedures, we introduce a \emph{procedure context} $\Delta$ mapping each procedure and control level to a set of admissible variable typings. Intuitively, $\Delta$ captures the summary of how a procedure may be used safely. We show how to \emph{construct} such a $\Delta$ from the procedure definitions by generating and solving constraints, in the spirit of type reconstruction\cite{pierce2002types}.
+To obtain these results, two technical devices are key. First, we adopt a standard \emph{program-counter discipline}: the control level $pc$ records the influence of secrets on the current point of execution; once raised (e.g.,\ by branching on a secret), it restricts subsequent low-observable actions until control returns to a lower level. Second, to support modular verification in the presence of recursive procedures, we introduce a \emph{procedure context} $\Delta$ mapping each procedure and control level to a set of admissible variable typings. Intuitively, $\Delta$ captures the summary of how a procedure may be used safely. We show how to \emph{construct} such a $\Delta$ from the procedure definitions by generating and solving constraints, in the spirit of type reconstruction\cite{pierce2002types}.
 
 The enforcement target is a standard, small-step reference semantics for choreographies. Following common practice in the information-flow literature \cite{volpano1996sound}, we consider a \emph{termination-insensitive} attacker: divergence itself is not deemed an observation. To state the main theorem conveniently, we pair the reference semantics with a natural (big-step) judgement that tracks an entire execution. The main result of the thesis is:
 
@@ -154,16 +146,17 @@ The enforcement target is a standard, small-step reference semantics for choreog
 \end{quote}
 
 \noindent
-Soundness is proved by a standard \emph{progress and preservation}\cite{pierce2002types} argument tailored to choreographies: well-typedness ensures that
+Soundness is proved by a standard \emph{progress and preservation}\cite{pierce2002types} argument tailored to choreographies; well-typedness ensures that:
 \begin{itemize}
-\item explicit flows respect the policy encoded by $\Gamma$.
-\item implicit flows are tracked so that no $low$-observable action depends on high secrets.
+\item explicit flows respect the policy encoded by $\Gamma$;
+\item implicit flows are tracked so that no $low$-observable action depends on high secrets;
 \item procedure calls are safe thanks to the invariants captured by $\Delta$.
 \end{itemize}
 
 The main theorem is \emph{mechanized} in the Lean proof assistant\cite{de2015lean}, building on an existing Lean formalization of choreographies and standard libraries for order-theoretic structures. Mechanization provides machine-checked assurance that the informal intuitions above are realized precisely.
 
 \paragraph{Contributions.}
+Summarizing, the main results of this thesis include:
 \begin{itemize}
   \item A \emph{policy-parametric} information-flow type system for choreographies, tracking both data and control via a program-counter discipline and supporting recursion through a procedure context $\Delta$.
   \item A \emph{soundness theorem} stating that well-typed choreographies satisfy termination-insensitive non-interference with respect to the reference semantics.
@@ -176,7 +169,7 @@ Chapter \ref{chap:background} introduces choreographies, recalls the essentials 
 Chapter \ref{chap:type-system} presents the language and the type system, motivating each typing rule on representative constructs.
 Chapter \ref{chap:soundness-proof} states and proves termination-insensitive non-interference for well-typed programs, using a natural-semantics presentation to express the attacker's observations.
 Chapter \ref{chap:delta} develops the construction of the procedure context $\Delta$ and establish its required properties.
-Chapter \ref{chap:lean} documents the Lean mechanization, its organization, and the connections to the pen and paper development.
+Chapter \ref{chap:lean} documents the Lean mechanization, its organization, and the connections to the pen-and-paper development.
 The appendices collect auxiliary syntactic lemmas used throughout the proofs.
 
 \chapter{Background} \label{chap:background}
@@ -1614,7 +1607,7 @@ By definition of $\Delta$, then
 $$
 \Gamma' \in \Delta(X,pc) \Rightarrow \Delta, \Gamma', pc \vdash C_X
 $$
-We now state a lemma which will not be proven in this document (since it is quite long and syntactical), but is part of the \emph{lean} artifact.
+We now state a lemma which will not be proven in this document (since it is quite long and syntactical), but is part of the \emph{Lean} artifact.
 \begin{align*}\label{aux:pres_lemma2}
 \begin{split}
 	\Delta, \Gamma', pc \vdash C 
@@ -1630,7 +1623,7 @@ $$
 \Delta,\Gamma[\vec{q}\mapsto\vec{p}],pc \vdash C_X
 $$
 
-We now introduce another lemma, proven in the \emph{lean} code but for which the proof (for the same reasons as above) will not be reproduced in this document.\label{aux:pres_lemma1}
+We now introduce another lemma, proven in the \emph{Lean} code but for which the proof (for the same reasons as above) will not be reproduced in this document.\label{aux:pres_lemma1}
 
 \begin{equation*}
 \Delta, \Gamma[\vec{q}\mapsto\vec{p}], pc \vdash C \Rightarrow
@@ -2045,6 +2038,9 @@ The algorithm we defined is very similar to type-inference\cite{pierce2002types}
 We do not address these topics in this thesis because of the limited time available.
 
 \chapter{Lean mechanization}
+\noindent
+In this chapter we present the mechanization in \emph{Lean 4} of the type system and meta-theory developed in the previous chapters for choreographic programs. We begin by fixing the notational conventions used in the formalization. We then describe the external foundations we rely on. Next, we outline the structure of the project and the role of each file, highlighting the main design choices behind the core definitions: syntax, semantics, typing and the lowering/lifting translations. We also clarify the coverage of the mechanization, stating which results are fully checked in Lean and which parts remain admitted together with the rationale. Finally, we work through a representative lemma to illustrate the proof style.
+
 \label{chap:lean}
 \section{Naming Conventions}
 In the following, a few naming conventions are different and should be considered:
@@ -2060,13 +2056,13 @@ In the following, a few naming conventions are different and should be considere
 \emph{Mathlib 4}\cite{mathlib4} was used as library in the project. This was done so that we could take advantage of the already mechanized math results.\\
 The biggest contribution taken from the library is the \texttt{Mathlib.Order.Lattice} module, which was used to encode $\MCL$ by defining it as a \emph{type variable} which implements the \texttt{Lattice}, \texttt{DecidableLE} and \texttt{Bot} \emph{type classes}.
 \subsection{Reference choreographies}
-Ongoing research is being done by Xueying Qin and Fabrizio Montesi at SDU to mechanize the language defined in \ref{background:choreographies}.
-My work builds on theirs, importing the needed definitions and results. The main imported constructs are the following: procedure context implementation, syntax and semantics for reference choreographies.
+Ongoing research is being done by Xueying Qin and Fabrizio Montesi at SDU to mechanize the language defined in Section \ref{background:choreographies}.
+My work builds on theirs, importing the needed definitions and results. The main imported constructs are: procedure context implementation and the syntax and semantics for reference choreographies.
 
 \section{Project Structure}
-The project is divided in multiple files to deal with the length and complexity of the proof. These files are the following:
+The project is divided into multiple files to deal with the length and complexity of the proof. These files are the following:
 \begin{itemize}
-\item \texttt{Common.lean} This file contains all the definitions which are needed by all the other files in the project. For example \emph{security labeling} \ref{type:flow-policy}:
+	\item \texttt{Common.lean} This file contains all the definitions which are needed by all the other files in the project. For example \emph{security labeling} (Section \ref{type:flow-policy}):
 \begin{samepage}
 \begin{verbatim}
 -- Security Labeling for Variables of a Processes
@@ -2085,7 +2081,7 @@ def SecFunCtx :=
 
 \item \texttt{Syntax.lean} This file contains the definition of the instrumented syntax, encoded as an inductive type, and all related lemmas and definition (for example \emph{substitution}, \emph{low equality}).
 
-\item \texttt{Semantics.lean} This file contains both the natural semantics as defined in \ref{nat_sem} and the operational semantics for instrumented choreographies. Both relations are defined as inductive types. Let us see the signatures for them:
+\item \texttt{Semantics.lean} This file contains both the natural semantics as defined in Section \ref{nat_sem} and the operational semantics for instrumented choreographies. Both relations are defined as inductive types. Let us see the signatures for them:
 \begin{samepage}
 \begin{verbatim}
 inductive Chor.natsem {sig: EvalSig}:
@@ -2095,7 +2091,7 @@ inductive BrChor.lto {G: @SecCLab L}:
     BrConf -> BrConf -> Prop
 \end{verbatim}
 \end{samepage}
-\item \texttt{Typing.lean} This file contains the typing relation as defined in \ref{type:formal} and all the helper lemmas used in the proofs. The relation is encoded as an mutually inductive type, with the following signature:
+\item \texttt{Typing.lean} This file contains the typing relation as defined in Section \ref{type:formal} and all the helper lemmas used in the proofs. The relation is encoded as an mutually inductive type, with the following signature:
 \begin{samepage}
 \begin{verbatim}
 mutual
@@ -2145,7 +2141,7 @@ def no_rtcall_c (c: Choreography): Prop := match c with
 end
 \end{verbatim}
 \end{samepage}
-\item \texttt{Completeness.lean} The main theorem defined in this file is \ref{aux:compl}. I was not able to finish the proof in lean for time related reasons. Since the completeness proof is not mechanized, it was described in deeper detail in this document.
+\item \texttt{Completeness.lean} The main theorem defined in this file is (\ref{aux:compl}). I was not able to finish the proof in Lean for lack of time. Since the completeness proof is not mechanized, it was described in deeper detail in this document.
 \item \texttt{Preservation.lean} The main theorem proved in this file is \ref{aux:pres}. In the same file are defined and proved helper lemmas (for example \emph{pc subsumption} and typing for instrumented local expressions).
 \item \texttt{Unwinding.lean} The main theorem proved in this file is \ref{aux:unw}. In the same file are defined and proved helper lemmas (for example the \emph{high step lemma}\cite{myers2011proving} and helper lemmas for low equality of instrumented stores).
 \item \texttt{NonInt.lean} This file contains the main proof, corresponding to \ref{main:def}.
@@ -2153,18 +2149,18 @@ All the other files of the project are imported in this one to be able to define
 \end{itemize}
 
 \section{Coverage of the Mechanization}
-Many results described in this document have been mechanized and are present in the lean code, but not all.
-Two main results are admitted and are proved only by pen and paper: \emph{completeness of the reference semantics with respect to the instrumented semantics} and \emph{construction of $\Delta$}.\\
-These two sections were not represented in lean for time constraints: any non-trivial lemma requires me to have first a pen and paper presentation. This is because while writing lean code it is very easy to concentrate on the syntactical aspects of the proof and to lose sight of the overall strategy.
-Moreover, once the proof strategy is clear, the process of encoding it in lean can be very time consuming, and it is sometimes difficult to correctly predict which proof steps are going to be the most challenging. Sometimes half a page paper presentations become hundreds and hundreds of lines of code.
+Many results described in this document have been mechanized and are present in the Lean code, but not all.
+Two main results are admitted and are proved only by pen-and-paper: \emph{completeness of the reference semantics with respect to the instrumented semantics} and \emph{construction of $\Delta$}.\\
+These two sections were not represented in Lean for time constraints: any non-trivial lemma requires me to have first a pen-and-paper presentation. This is because, while writing Lean code, it is very easy to concentrate on the syntactical aspects of the proof and to lose sight of the overall strategy.
+Moreover, once the proof strategy is clear, the process of encoding it in Lean can be very time consuming, and it is sometimes difficult to correctly predict which proof steps are going to be the most challenging. Sometimes, half a page paper presentations become hundreds and hundreds of lines of code.
 
 \section{An Illustrative Example}
-We will now show the lean implementation of the following lemma, used in section \ref{aux:pres_lemma1}. Let us remind ourselves the lemma statement:
+We will now show the Lean implementation of the following lemma, used in Section \ref{aux:pres_lemma1}. Let us remind ourselves the lemma statement:
 \begin{equation*}
 \Delta, \Gamma[\vec{q}\mapsto\vec{p}~], pc \vdash C \Longrightarrow
 \Delta, \Gamma, pc \vdash C[\vec{q}/\vec{p}~]
 \end{equation*}
-In lean, the same statement is expressed as:
+In Lean, the same statement is expressed as:
 \begin{samepage}
 \begin{verbatim}
 def tj_substs {D: @SecFunCtx L} {G: SecCLab} {pc: L} {c: BrChor}
@@ -2174,9 +2170,9 @@ def tj_substs {D: @SecFunCtx L} {G: SecCLab} {pc: L} {c: BrChor}
     -> @tj_bc _ _ low tjeval D G pc (c.substitutions ps qs Hlen)
 \end{verbatim}
 \end{samepage}
-As we can see, most of the assumptions which are treated as implicit in the pen and paper proof here need to be made explicit.
+As we can see, most of the assumptions which are treated as implicit in the pen-and-paper proof, here, need to be made explicit.
 \begin{itemize}
-\item \emph{Same length of $\vec{p}$ and $\vec{q}$}: In this document, we always assumed same lenght from the arguments of every substitution operation. Let us now see how the substitution is defined in the lean code:
+\item \emph{Same length of $\vec{p}$ and $\vec{q}$}: In this document, we always assumed same lenght from the arguments of every substitution operation. Let us now see how the substitution is defined in the Lean code:
 \begin{verbatim}
 def BrChor.substitutions (c: BrChor) (ps qs: List Pid)
     (H: ps.length = qs.length): BrChor :=
@@ -2186,20 +2182,20 @@ def BrChor.substitutions (c: BrChor) (ps qs: List Pid)
                 (by simp_all)
         | [], [] => c
 \end{verbatim}
-Where \texttt{BrChor.substitutions} performs \textbf{Pid} substitution for choreographies as defined in \ref{intro:chor_subst}.
+Where \texttt{BrChor.substitutions} performs \textbf{Pid} substitution for choreographies as defined in Section \ref{intro:chor_subst}.
 We see how the function is only defined for inputs of the same length, and how this requirement allows us to ignore the impossible pattern matching cases.
 
 \item \emph{Fresh parameters for $\Delta$}:
-We want to encode the assumption \emph{freshness of formal parameters} as defined in \ref{ass:fresh}.
+We want to encode the assumption \emph{freshness of formal parameters} as defined in Section \ref{ass:fresh}.
 \begin{verbatim}
 def fresh_functx (D: @SecFunCtx L) :=
     forall (pc: L) (X: ProcName) (qs: List Pid) (ps: Finset Pid),
     qs = Prod.fst (D X pc) -> Disjoint ps qs.toFinset
 \end{verbatim}
-It is to be noted how this property is too restricting, since it can be used with $qs = ps$ to prove that every procedure has an empty list of arguments. While this is technically incorrect, it is a necessary requirements for the semantics as specified in \ref{lean:imports} (which were thus outside of my control). A cleaner solution would be to define $\mathscr{C}$ as a \emph{partial} function with a finite image, such that we can enforce a partitioning of the set \textbf{Pid} between the procedures and the \emph{main} choreography.
+We note how this property is too restricting, since it can be used with $qs = ps$ to prove that every procedure has an empty list of arguments. While this is technically incorrect, it is a necessary requirement for the semantics as specified in Section \ref{lean:imports} (which were, thus, outside of my control). A cleaner solution would be to define $\mathscr{C}$ as a \emph{partial} function with a finite image, such that we can enforce a partitioning of the set \textbf{Pid} between the procedures and the \emph{main} choreography.
 \end{itemize}
 \subsubsection{Context Renaming}
-We now see how the function \texttt{secclab\_substs} encodes the \emph{context renaming} operator as defined in \ref{def:context_renaming}. The function is defined as follows:
+We now see how the function \texttt{secclab\_substs} encodes the \emph{context renaming} operator as defined in Section \ref{def:context_renaming}. The function is defined as follows:
 \begin{samepage}
 \begin{verbatim}
 def secclab_substs (G: @SecCLab L) (p q: List Pid)
@@ -2222,8 +2218,8 @@ def secclab_subst (G: @SecCLab L) (p q: Pid): @SecCLab L :=
 \end{samepage}
 
 \subsubsection{Proof}
-For the rest of the chapter there is an important note to make: my proof style in lean can be considered mostly \emph{backward chaining}\cite{al2015comparison}, that is, I tend to manipulate the goal more than the hypothesis.
-Let us now see the proof body in lean, omitting the uninteresting induction cases.
+For the rest of the chapter there is an important note to make: my proof style in Lean can be considered mostly \emph{backward chaining}\cite{al2015comparison}, that is, I tend to manipulate the goal more than the hypothesis.
+Let us now see the proof body in Lean, omitting the uninteresting induction cases.
 \begin{samepage}
 \begin{verbatim}
     intro Hfresh H1
@@ -2251,21 +2247,21 @@ Let us now see the proof body in lean, omitting the uninteresting induction case
         apply Hgam
 \end{verbatim}
 \end{samepage}
-Let us unpack what happens in this code snippet: The proof follows by induction on the typing derivation \texttt{tj\_bc}. We will explain the cases for \emph{assignment}, \emph{conditionals} and \emph{procedure calls}.
+Let us unpack what happens in this code snippet. The proof follows by induction on the typing derivation \texttt{tj\_bc}. We will explain the cases for \emph{assignment}, \emph{conditionals}, and \emph{procedure calls}.
 \begin{itemize}
 \item \emph{assignment}: The inductive cases gives us hypothesis for the typing of the expression (\texttt{Htjeval}) and on the order relation between $\ell$ and $\Gamma~p~x$ (\texttt{Hsub}).\\
 The first step rewrites the goal from:\\
 \texttt{tj\_bc D G pc ((BrChor.ass p e x).substitutions ps qs Hlen)}\\
 to \texttt{tj\_bc D G pc (BrChor.ass (pid\_substs p ps qs Hlen) e x)}.
-Thus enabling us to use the typing rule for assignments.
-The two assumptions of the typing rule are discharged by the proof search mechanism of lean, using the following helper lemma (which is used on \texttt{Heval} to make it compatible with the needed assumption):
+Thus, enabling us to use the typing rule for assignments.
+The two assumptions of the typing rule are discharged by the proof search mechanism of Lean, using the following helper lemma (which is used on \texttt{Heval} to make it compatible with the needed assumption):
 \begin{verbatim}
 lemma sec_substs_of_pid_substs {G: @SecCLab L}
     {r: Pid} {ps qs: List Pid} {Hlen}:
     (secclab_substs G ps qs Hlen) r = G (pid_substs r ps qs Hlen)
 \end{verbatim}
-\item \emph{conditional}: The inductive case gives us hypothesis for the typing of the expression (\texttt{Heval}), and two inductive hypothesis for the two branches (\texttt{IH1,  IH2}).
-The typing of the expression is dealt exactly as in the previous case, but to be able to use the typing rule on the goal we need to apply the inductive hypothesis.
+\item \emph{conditional}: The inductive case gives us the hypothesis for the typing of the expression (\texttt{Heval}), and two inductive hypotheses for the two branches (\texttt{IH1,  IH2}).
+The typing of the expression is dealt with exactly as in the previous case, but to be able to use the typing rule on the goal we need to apply the inductive hypothesis.
 \item \emph{procedure call}: We first, as we did in the previous inductive cases, invert the process substitution to be able to use the call typing rule. The function lookup part of the typing derivation remains the same (which finds $\Gamma', \vec{r}$), thus it remains to prove the following:
 $$
 \Gamma' \equiv_L \Gamma[\vec{q} \mapsto \vec{p}~][\vec{r} \mapsto \vec{s}]
@@ -2281,7 +2277,7 @@ And from the fact that $\equiv_L$ is an equivalence relation, we can reduce the 
 &\Longrightarrow \Gamma[\vec{q} \mapsto \vec{p}~][\vec{r} \mapsto \vec{s}]
 \equiv_L \Gamma[\vec{q} \mapsto \vec{p}~[\vec{r}/\vec{s}]]
 \end{align*}
-Which is proven by the lemma \texttt{gamsubsts\_helper}, as can be seen by it's signature:
+Which is proven by the lemma \texttt{gamsubsts\_helper}, as can be seen by its signature:
 \begin{samepage}
 \begin{verbatim}
 lemma gamsubsts_helper {ps qs rs ss: List Pid}
@@ -2337,7 +2333,7 @@ lemma helper23718 {G G': @SecCLab L} {qs ps ps': List Pid}
         (secclab_substs G' qs ps' Hlen2)
 \end{verbatim}
 \end{samepage}
-This lemma says that, under correct disjointness conditions, parallel substitutions of security labels are determined purely by the \emph{positionwise} agreement of the labels being plugged in.
+This lemma says that, under correct disjointness conditions, parallel substitutions of security labels are determined purely by the \emph{position-wise} agreement of the labels being plugged in.
 \begin{samepage}
 \begin{verbatim}
 lemma helper7489376 {fst snd ps qs Hlen} {rs: List Pid}:
@@ -2365,7 +2361,7 @@ Now that we have all the necessary background, we can look at the body of the pr
     rw [And.right A1]
 \end{verbatim}
 \end{samepage}
-And see that basically the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning which proves the equation in every possible case. 
+And see that, basically, the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning, which proves the equation in every possible case. 
 
 \begin{appendices}
 \chapter{Proofs on Syntactic Transformations}
