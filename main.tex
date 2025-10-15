@@ -126,6 +126,43 @@
 \setcounter{page}{1}
 Distributed software can be seen as a set of communicating components that jointly implement protocols such as authenticating a user, booking a ticket, or reconciling a payment. At this scale, two concerns have to be considered: \emph{correct coordination} among participants and \emph{confidentiality} of the data they manipulate. \emph{Choreographic languages} address the first concern by describing protocols from a global point of view, from which compliant local behaviours can be derived\cite{montesi2023introduction}. This work tackles the second concern: ensuring, by construction, that a choreography does not leak secret information to public observers.
 
+\paragraph{Motivating example: account recovery without username enumeration}
+We illustrate a tiny choreography for password recovery.
+We consider the \emph{existence} of an user to be sensitive information, which should not be leaked to the public.
+We define three processes: the service \(\mathsf{s}\), the mailer \(\mathsf{m}\) and the  requester \(\mathsf{r}\). The predicate
+\(\mathsf{exists}(email)\) (which reads: does an account with email \(email\) exist?) returns a \emph{sensitive} datum. We want to be able to differentiate between the two programs in Figure \ref{fig:example}. The first one is insecure even if the returned value of $\mathsf{exists}(email)$ is never sent to the requester: by simply analyzing the message sent from the service, an attacker can retrive the value of the sensitive value.
+\begin{figure}[t]
+  \label{fig:example}
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \raggedright\textbf{Insecure variant}
+    \vspace{0.3em}
+\begin{lstlisting}[basicstyle=\ttfamily\small, frame=single, numbers=none]
+r.email -> s.email
+if s.exists(email) then
+    s.email -> m.email
+    s."email sent" -> r.msg
+else
+    s."unknown user" -> r.msg
+\end{lstlisting}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \raggedright\textbf{Safe variant}
+    \vspace{0.3em}
+\begin{lstlisting}[basicstyle=\ttfamily\small, frame=single, numbers=none]
+r.email -> s.email
+if s.exists(email) then
+    s.email -> m.email
+else
+    skip
+s."check your inbox" -> r.msg
+\end{lstlisting}
+  \end{minipage}
+
+  \caption{Side-by-side comparison of the safe and insecure account-recovery choreographies.} \end{figure}
+
+\medskip
 Information flow security offers a principled way to reason about confidentiality.
 Following Denning's lattice model of security classes\cite{denning1976lattice}, to every piece of data is assigned a security class ordered by a relation $\sqsubseteq$ over a security lattice $\MCL$.
 
