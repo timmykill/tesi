@@ -160,7 +160,7 @@ s."check your inbox" -> r.msg
 \end{lstlisting}
   \end{minipage}
 
-  \caption{Side-by-side comparison of the safe and insecure account-recovery choreographies.} \end{figure}
+  \caption{Side-by-side comparison of the safe and insecure account recovery choreographies.} \end{figure}
 
 \medskip
 Information flow security offers a principled way to reason about confidentiality.
@@ -2400,6 +2400,33 @@ Now that we have all the necessary background, we can look at the body of the pr
 \end{samepage}
 And see that, basically, the conclusion follows from two main ideas. The first one is that disjointness of the process names lets us reason independently on every element of $\vec{q}$. The second one is triangular reasoning, which proves the equation in every possible case. 
 
+\chapter{Conclusion}\label{chap:conclusion}
+This thesis addressed the problem of enforcing confidentiality in choreographic programs. Within the broader landscape where choreographies are used to specify, verify, or synthesize the intended interactions of distributed systems, we focused on the complementary concern of \emph{information-flow security}: ensuring, \emph{by construction}, that a choreography does not leak secret information to public observers.
+
+\medskip
+\noindent\textbf{Summary of contributions.}
+\begin{itemize}
+  \item \emph{Policy-parametric type discipline for information flow.} We designed a compositional type system that is parametric in a security lattice $\MCL$. The typing judgement
+  \[
+    \Delta \;;\; \Gamma \;;\; \bot \;\vdash\; C
+  \]
+  checks a choreography $C$ under a flow policy $\Gamma$.
+  The rules cover core choreographic constructs (communication, selection, conditional, and procedure call/definition) and ensure that low-observable behaviour cannot be influenced by high data or control.
+  \item \emph{Soundness with respect to termination-insensitive non-interference.} We proved that well-typed choreographies satisfy non-interference with respect to a standard small-step reference semantics equipped with an attacker model that observes only $low$ effects. Formally, if $C$ is well-typed and two initial stores are indistinguishable at level $low$, then all $low$-observable outcomes of executing $C$ from those stores are indistinguishable. 
+The proof hinges on a standard \emph{pc-discipline} for control-flow and a \emph{progress and preservation} argument over the choreographic reduction relation, and it is carried out for an arbitrary lattice $\MCL$.
+  \item \emph{Procedure-context reconstruction.} We developed a reconstruction method that \emph{derives} the procedure context $\Delta$ by generating and solving well-formedness constraints extracted from the program. We proved that the reconstructed $\Delta$ is sound for typing (every reconstructed context is admissible).
+  \item \emph{Mechanized metatheory.} All definitions and key metatheoretic results are mechanized in Lean. The development builds on ongoing work in mechanization of the theory of choreographic programming, thus the syntax and semantics referenced is imported into the project. The artifact attached to the thesis includes the policy-parametric type system with the program-counter discipline and the termination-insensitive non-interference theorem with the corresponding proof. The formalization reuses Mathlib's order-theoretic infrastructure to encode the abstract lattice $\MCL$, keeping the proofs generic in the security policy.
+\end{itemize}
+Taken together, these contributions show that non-interference can be enforced \emph{at the choreographic level} by a lightweight, compositional, type discipline and that the resulting guarantees are robust: they are independent of the particular security lattice, stable under recursion and procedure abstraction, and validated by a machine-checked proof. In this way, the thesis complements existing choreographic methodologies with principled confidentiality guarantees, bringing the clarity and modularity of choreography-based design to information-flow security.
+\section{Extensions}
+Multiple extensions from the work presented in this thesis are possible, and would be needed to have a \emph{complete} treatment of mechanized non-interference for choreographies. They are ordered by the descending importance that I personally attribute to them.
+\begin{itemize}
+\item \emph{Extend the coverage of the mechanization.} Given the time constraint, not every result reached in this work has been mechanized. An important extension would be to have the full coverage of the proofs presented in this document in the Lean artifact
+\item \emph{Completeness of the type inference algorithm with respect to the type relation.} In other words, this requires proving that every flow-policy that well types a choreography also satisfies the constraints found by the type-inference algorithm. This result would also make it possible for a programmer to \emph{underspecify} a flow-policy, leaving to the inference algorithm the job of finding a type for the \emph{working variables} that satisfies the constraints of the specified flow-policy.
+\item \emph{Discriminating channels security.} The flow-policy can be extended to specify the security level of every channel between processes, so that private informations are not allowed on insecure channels.
+\item \emph{Non-interference in the presence of non-determinism.} The choreographic language presented in \cite{montesi2023introduction} is extended in Chapter 10 to include \emph{non-deterministic choice}. Extensions of the notion of non-interference are present in the literature\cite{sabelfeld2003language}. It would be particularly interesting to explore their application to choreographic languages, since non-determinism can be seen as a key feature of distributed software systems.
+\end{itemize}
+
 \begin{appendices}
 \chapter{Proofs on Syntactic Transformations}
 \label{appdix:A}
@@ -2651,5 +2678,8 @@ $\llbracket \Uppsi_1^\star \sqcup \Uppsi_2^\star \rrbracket =
 \bibliography{refs}
 
 \chapter*{Acknowledgments}
-Thank you all
+Ringrazio la mia famiglia per avermi \emph{supportato} e i miei amici per avermi \emph{sopportato} tra Italia, Francia e Danimarca.
+
+\noindent Ringrazio inoltre i miei supervisor Marco Peressotti e Saverio Giallorenzo per avermi a più riprese schiarito le idee sul miglior modo di affrontare i problemi presentatisi durante la progettazione e stesura di questa tesi.
+Ringrazio Fabrizio Montesi e Xueying Qin per avermi aiutato a dimostrare in Lean lemmi ben al di sopra della mia capacità.
 \end{document}
