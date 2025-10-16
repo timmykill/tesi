@@ -129,10 +129,16 @@ Distributed software can be seen as a set of communicating components that joint
 \paragraph{Motivating example: account recovery without username enumeration}
 We illustrate a tiny choreography for password recovery.
 We consider the \emph{existence} of an user to be sensitive information, which should not be leaked to the public.
-We define three processes: the service \(\mathsf{s}\), the mailer \(\mathsf{m}\) and the  requester \(\mathsf{r}\). The predicate
-\(\mathsf{exists}(email)\) (which reads: does an account with email \(email\) exist?) returns a \emph{sensitive} datum. We want to be able to differentiate between the two programs in Figure \ref{fig:example}. The first one is insecure even if the returned value of $\mathsf{exists}(email)$ is never sent to the requester: by simply analyzing the message sent from the service, an attacker can retrive the value of the sensitive value.
+We define three processes: the service \(\mathsf{s}\), the mailer \(\mathsf{m}\) and the  requester \(\mathsf{r}\). Any information observable by the requester is considered public.
+The predicate \(\mathsf{exists}(email)\) (which reads: does an account with email \(email\) exist?) returns a \emph{sensitive} datum. We want to be able to differentiate between the two programs in Figure \ref{fig:example}.
+In the insecure choreography (left), the requester \(\mathsf{r}\) first sends an email address to the service \(\mathsf{s}\).
+Then \(\mathsf{s}\) evaluates the sensitive predicate \(\mathsf{exists}(\mathit{email})\).
+If it holds, \(\mathsf{s}\) forwards the address to the mailer \(\mathsf{m}\) and replies to \(\mathsf{r}\) with the literal message \texttt{email sent}; otherwise, it replies with \texttt{unknown user}.
+Since we fixed the public observer to be \(\mathsf{r}\), the two executions are distinguishable at \(\mathsf{r}\) by the content of \(\mathsf{s}\!\to\!\mathsf{r}\), so an attacker learns the secret bit \(\mathsf{exists}(\mathit{email})\) from a low observation.
+In the safe choreography (right), \(\mathsf{s}\) still branches on \(\mathsf{exists}(\mathit{email})\), but the branch only affects the internal action toward \(\mathsf{m}\) (either send the email or skip); the behavior visible to \(\mathsf{r}\) is uniform, as \(\mathsf{s}\) always replies with \texttt{check your inbox}.
+Thus runs that differ only in the secret predicate yield the same low observation at \(\mathsf{r}\), preventing username enumeration and restoring non-interference with respect to the $low$-observer \(\mathsf{r}\).
+
 \begin{figure}[t]
-  \label{fig:example}
   \centering
   \begin{minipage}[t]{0.48\textwidth}
     \raggedright\textbf{Insecure variant}
@@ -160,7 +166,8 @@ s."check your inbox" -> r.msg
 \end{lstlisting}
   \end{minipage}
 
-  \caption{Side-by-side comparison of the safe and insecure account recovery choreographies.} \end{figure}
+  \caption{Side-by-side comparison of the safe and insecure account recovery choreographies.}
+  \label{fig:example}\end{figure}
 
 \medskip
 Information flow security offers a principled way to reason about confidentiality.
@@ -2421,7 +2428,7 @@ Taken together, these contributions show that non-interference can be enforced \
 \section{Extensions}
 Multiple extensions from the work presented in this thesis are possible, and would be needed to have a \emph{complete} treatment of mechanized non-interference for choreographies. They are ordered by the descending importance that I personally attribute to them.
 \begin{itemize}
-\item \emph{Extend the coverage of the mechanization.} Given the time constraint, not every result reached in this work has been mechanized. An important extension would be to have the full coverage of the proofs presented in this document in the Lean artifact
+\item \emph{Extend the coverage of the mechanization.} Given the time constraint, not every result reached in this work has been mechanized. An important extension would be to have the full coverage of the proofs presented in this document in the Lean artifact.
 \item \emph{Completeness of the type inference algorithm with respect to the type relation.} In other words, this requires proving that every flow-policy that well types a choreography also satisfies the constraints found by the type-inference algorithm. This result would also make it possible for a programmer to \emph{underspecify} a flow-policy, leaving to the inference algorithm the job of finding a type for the \emph{working variables} that satisfies the constraints of the specified flow-policy.
 \item \emph{Discriminating channels security.} The flow-policy can be extended to specify the security level of every channel between processes, so that private informations are not allowed on insecure channels.
 \item \emph{Non-interference in the presence of non-determinism.} The choreographic language presented in \cite{montesi2023introduction} is extended in Chapter 10 to include \emph{non-deterministic choice}. Extensions of the notion of non-interference are present in the literature\cite{sabelfeld2003language}. It would be particularly interesting to explore their application to choreographic languages, since non-determinism can be seen as a key feature of distributed software systems.
